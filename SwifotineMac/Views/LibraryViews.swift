@@ -110,6 +110,14 @@ struct LibraryView: View {
             playbackEngine.play(track: track)
         }
 
+        Button("Play Next") {
+            playbackEngine.playNext(track: track)
+        }
+
+        Button("Add to Queue") {
+            playbackEngine.enqueue(track: track)
+        }
+
         Button(track.isLiked ? "Unlike" : "Like") {
             toggleLike(track)
         }
@@ -149,7 +157,8 @@ private struct TrackGridCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ProceduralCoverView(
+            TrackArtworkCoverView(
+                track: track,
                 seed: "\(track.artist)|\(track.album)",
                 title: track.album
             )

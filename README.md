@@ -14,8 +14,9 @@ Native macOS Soulseek client prototype built with SwiftUI, SwiftData, and a Pyth
 - Queue and monitor downloads from search results.
 - Persist download transfer state across app relaunches.
 - Organize completed files into your local library (SwiftData persistent store).
-- Library supports table and grid layouts with generated album-cover artwork.
+- Library supports table and grid layouts with embedded artwork (and procedural fallback covers).
 - Playlists support custom procedural covers influenced by user-provided text.
+- Playback queue supports "Play Next" and "Add to Queue" from library context menus.
 - Native music playback with timeline scrubbing, artwork, and a mini player window.
 - Acknowledgements pop-out (Help menu) for bundled/open-source dependencies.
 - Short animated splash screen on launch for smoother startup handoff.
@@ -83,6 +84,7 @@ Outputs:
 - `⌘P`: Play/Pause
 - `⌘.`: Stop playback
 - `⌘[` / `⌘]`: Seek back/forward 10 seconds
+- `⌘⌥]`: Next in queue
 - `⌘⇧M`: Show mini player
 - `⌘⌥A`: Show Acknowledgements
 

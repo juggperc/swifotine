@@ -79,6 +79,12 @@ struct PlaybackCommands: Commands {
             .keyboardShortcut("]", modifiers: [.command])
             .disabled(playbackEngine.currentTrack == nil)
 
+            Button("Next in Queue") {
+                playbackEngine.skipToNextInQueue()
+            }
+            .keyboardShortcut("]", modifiers: [.command, .option])
+            .disabled(playbackEngine.upNext.isEmpty)
+
             Divider()
 
             Button("Show Mini Player") {

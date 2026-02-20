@@ -156,6 +156,18 @@ struct PlaylistsView: View {
                 Text("\(sortedEntries(for: playlist).count) tracks")
                     .foregroundStyle(.secondary)
 
+                HStack(spacing: 8) {
+                    Button("Play Playlist") {
+                        playPlaylist(playlist)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Queue Playlist") {
+                        enqueuePlaylist(playlist)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
                 TextField("Cover influence", text: $detailCoverInfluence)
                     .textFieldStyle(.roundedBorder)
 
@@ -195,7 +207,8 @@ struct PlaylistsView: View {
                     ForEach(entries) { entry in
                         if let track = entry.track {
                             HStack(spacing: 10) {
-                                ProceduralCoverView(
+                                TrackArtworkCoverView(
+                                    track: track,
                                     seed: "\(track.artist)|\(track.album)",
                                     title: track.album,
                                     cornerRadius: 8,
@@ -215,9 +228,23 @@ struct PlaylistsView: View {
                                 Spacer()
 
                                 Button {
-                                    playbackEngine.play(track: track)
+                                    playPlaylist(from: track, in: playlist)
                                 } label: {
                                     Image(systemName: "play.fill")
+                                }
+                                .buttonStyle(.borderless)
+
+                                Button {
+                                    playbackEngine.playNext(track: track)
+                                } label: {
+                                    Image(systemName: "text.line.first.and.arrowtriangle.forward")
+                                }
+                                .buttonStyle(.borderless)
+
+                                Button {
+                                    playbackEngine.enqueue(track: track)
+                                } label: {
+                                    Image(systemName: "text.badge.plus")
                                 }
                                 .buttonStyle(.borderless)
 
@@ -333,6 +360,33 @@ struct PlaylistsView: View {
 
     private func sortedEntries(for playlist: Playlist) -> [PlaylistEntry] {
         playlist.entries.sorted { $0.order < $1.order }
+    }
+
+    private func orderedTracks(for playlist: Playlist) -> [Track] {
+        sortedEntries(for: playlist).compactMap(\.track)
+    }
+
+    private func playPlaylist(_ playlist: Playlist) {
+        let tracks = orderedTracks(for: playlist)
+        guard let first = tracks.first else { return }
+        playbackEngine.play(track: first, queueAfter: Array(tracks.dropFirst()))
+    }
+
+    private func playPlaylist(from track: Track, in playlist: Playlist) {
+        let tracks = orderedTracks(for: playlist)
+        guard let startIndex = tracks.firstIndex(where: { $0.id == track.id }) else {
+            playbackEngine.play(track: track)
+            return
+        }
+
+        playbackEngine.play(
+            track: tracks[startIndex],
+            queueAfter: Array(tracks.dropFirst(startIndex + 1))
+        )
+    }
+
+    private func enqueuePlaylist(_ playlist: Playlist) {
+        playbackEngine.enqueue(tracks: orderedTracks(for: playlist))
     }
 
     private func addableTracks(for playlist: Playlist) -> [Track] {

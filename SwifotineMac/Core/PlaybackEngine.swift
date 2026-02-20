@@ -15,10 +15,12 @@ class PlaybackEngine: ObservableObject {
     @Published var currentTrack: Track?
     @Published var currentArtwork: NSImage?
     @Published var duration: Double = 0.0
+    @Published var upNext: [Track] = []
 
     private var player: AVQueuePlayer?
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
+    private var metadataRequestID = UUID()
 
     @Published var currentTime: Double = 0.0
 
@@ -47,13 +49,49 @@ class PlaybackEngine: ObservableObject {
         ) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
-                self.state = .stopped
-                self.currentTime = self.duration
+                self.playNextFromQueueOrStop()
             }
         }
     }
 
-    func play(track: Track) {
+    func play(track: Track, queueAfter: [Track] = []) {
+        upNext = queueAfter.filter {
+            FileManager.default.fileExists(atPath: $0.localPath)
+        }
+        playTrack(track)
+    }
+
+    func enqueue(track: Track) {
+        guard FileManager.default.fileExists(atPath: track.localPath) else { return }
+        upNext.append(track)
+    }
+
+    func enqueue(tracks: [Track]) {
+        for track in tracks {
+            enqueue(track: track)
+        }
+    }
+
+    func playNext(track: Track) {
+        guard FileManager.default.fileExists(atPath: track.localPath) else { return }
+
+        if currentTrack == nil {
+            play(track: track)
+            return
+        }
+
+        upNext.insert(track, at: 0)
+    }
+
+    func skipToNextInQueue() {
+        playNextFromQueueOrStop()
+    }
+
+    func clearQueue() {
+        upNext.removeAll()
+    }
+
+    private func playTrack(_ track: Track) {
         let url = URL(fileURLWithPath: track.localPath)
         guard
             FileManager.default.fileExists(atPath: track.localPath)
@@ -72,7 +110,9 @@ class PlaybackEngine: ObservableObject {
 
         self.currentTrack = track
         self.state = .playing
-        loadMetadata(for: url)
+        let requestID = UUID()
+        metadataRequestID = requestID
+        loadMetadata(for: url, requestID: requestID)
     }
 
     func pause() {
@@ -93,7 +133,7 @@ class PlaybackEngine: ObservableObject {
             resume()
         case .stopped:
             if let track = currentTrack {
-                play(track: track)
+                playTrack(track)
             }
         case .buffering:
             break
@@ -115,6 +155,7 @@ class PlaybackEngine: ObservableObject {
     func stop() {
         player?.pause()
         player?.removeAllItems()
+        clearQueue()
         self.currentTrack = nil
         self.currentArtwork = nil
         self.state = .stopped
@@ -130,29 +171,30 @@ class PlaybackEngine: ObservableObject {
         MiniPlayerWindowController.shared.toggle(playbackEngine: self)
     }
 
-    private func loadMetadata(for url: URL) {
+    private func playNextFromQueueOrStop() {
+        while !upNext.isEmpty {
+            let candidate = upNext.removeFirst()
+            if FileManager.default.fileExists(atPath: candidate.localPath) {
+                playTrack(candidate)
+                return
+            }
+        }
+
+        state = .stopped
+        currentTime = duration
+    }
+
+    private func loadMetadata(for url: URL, requestID: UUID) {
         Task { [weak self] in
             guard let self else { return }
 
             let asset = AVURLAsset(url: url)
             let loadedDuration = (try? await asset.load(.duration)) ?? .zero
             let rawDuration = CMTimeGetSeconds(loadedDuration)
+            let resolvedArtwork = await EmbeddedArtworkLoader.load(localPath: url.path)
+
+            guard requestID == metadataRequestID else { return }
             duration = rawDuration.isFinite ? rawDuration : 0
-
-            let metadata = (try? await asset.load(.commonMetadata)) ?? []
-            let artworkItems = AVMetadataItem.metadataItems(
-                from: metadata, filteredByIdentifier: .commonIdentifierArtwork)
-
-            var resolvedArtwork: NSImage? = nil
-            for item in artworkItems {
-                if let data = try? await item.load(.dataValue),
-                    let image = NSImage(data: data)
-                {
-                    resolvedArtwork = image
-                    break
-                }
-            }
-
             currentArtwork = resolvedArtwork
         }
     }

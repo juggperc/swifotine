@@ -185,6 +185,12 @@ struct PlaybackBottomBar: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
+                            if let queuedTrack = playbackEngine.upNext.first {
+                                Text("Up next: \(queuedTrack.title)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
                         .frame(maxWidth: 280, alignment: .leading)
                     } else {
@@ -217,6 +223,14 @@ struct PlaybackBottomBar: View {
                             Image(systemName: "goforward.10")
                         }
                         .help("Forward 10 Seconds")
+
+                        Button {
+                            playbackEngine.skipToNextInQueue()
+                        } label: {
+                            Image(systemName: "forward.end.fill")
+                        }
+                        .disabled(playbackEngine.upNext.isEmpty)
+                        .help("Next in Queue")
 
                         Button {
                             playbackEngine.stop()
