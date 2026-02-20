@@ -3,6 +3,7 @@ import os
 import json
 import threading
 import time
+import hashlib
 
 # Path to upstream nicotine+ submodule
 VENDOR_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'vendor', 'nicotine-plus'))
@@ -20,6 +21,7 @@ class SwifotineHelper:
     def __init__(self):
         self.session_config = {}
         self.is_running = True
+        self._forced_shares_ready = False
 
         # Initialize core components. We exclude UI and CLI.
         # "search" and "downloads" components must be enabled
@@ -90,10 +92,33 @@ class SwifotineHelper:
                     "length": attrs.get("length", 0) if isinstance(attrs, dict) else 0
                 })
 
+    def _transfer_id(self, transfer):
+        username = str(getattr(transfer, "user", "unknown"))
+        virtual_path = str(getattr(transfer, "virtual_path", ""))
+        digest = hashlib.sha1(f"{username}|{virtual_path}".encode("utf-8")).hexdigest()[:16]
+        return f"{username}:{digest}"
+
+    def _ensure_download_queue_ready(self):
+        if not getattr(core, "shares", None):
+            return
+
+        if core.shares.initialized:
+            return
+
+        core.shares.initialized = True
+        events.emit("shares-ready", True)
+
+        if not self._forced_shares_ready:
+            self._forced_shares_ready = True
+            self.emit_event("backend.log", {
+                "level": "warning",
+                "message": "Shares were not initialized; forced shares-ready to unblock queued downloads."
+            })
+
     def on_update_download(self, transfer, *args):
         status = getattr(transfer, "status", "unknown")
         self.emit_event("download.updated", {
-            "transfer_id": getattr(transfer, "id", "unknown"),
+            "transfer_id": self._transfer_id(transfer),
             "source_username": getattr(transfer, "user", "unknown"),
             "virtual_path": getattr(transfer, "virtual_path", ""),
             "status": str(status),
@@ -114,7 +139,9 @@ class SwifotineHelper:
         
     def on_download_error(self, transfer, reason, *args):
         self.emit_event("download.failed", {
-            "transfer_id": getattr(transfer, "id", "unknown"),
+            "transfer_id": self._transfer_id(transfer),
+            "source_username": getattr(transfer, "user", "unknown"),
+            "virtual_path": getattr(transfer, "virtual_path", ""),
             "categorized_reason": str(reason)
         })
 
@@ -196,8 +223,9 @@ class SwifotineHelper:
                 self.respond(req_id)
             elif method == "download.enqueue":
                 username = params.get("username", "")
-                vpath = params.get("virtualPath", "")
+                vpath = params.get("virtualPath", "").replace("/", "\\")
                 if core.downloads and username and vpath:
+                    self._ensure_download_queue_ready()
                     core.downloads.enqueue_download(username, vpath)
                 self.respond(req_id)
             else:

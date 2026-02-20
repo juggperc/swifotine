@@ -121,6 +121,16 @@ class DownloadsStore: ObservableObject {
                         if let index = activeTransfers.firstIndex(where: { $0.id == id }) {
                             activeTransfers[index].status =
                                 "Failed: \(payload["categorized_reason"] ?? "Unknown")"
+                        } else if let sourceUsername = payload["source_username"],
+                            let virtualPath = payload["virtual_path"]
+                        {
+                            let queuedID = queuedTransferID(
+                                username: sourceUsername, virtualPath: virtualPath)
+                            if let queuedIndex = activeTransfers.firstIndex(where: { $0.id == queuedID })
+                            {
+                                activeTransfers[queuedIndex].status =
+                                    "Failed: \(payload["categorized_reason"] ?? "Unknown")"
+                            }
                         }
                     }
 
