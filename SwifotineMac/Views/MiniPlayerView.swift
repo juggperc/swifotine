@@ -11,9 +11,15 @@ struct MiniPlayerView: View {
                 ArtworkThumbnail(image: playbackEngine.currentArtwork, size: 72)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(playbackEngine.currentTrack?.title ?? "Not Playing")
-                        .font(.headline)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        if playbackEngine.state == .playing {
+                            MiniNowPlayingPulseDot()
+                        }
+
+                        Text(playbackEngine.currentTrack?.title ?? "Not Playing")
+                            .font(.headline)
+                            .lineLimit(1)
+                    }
                     Text(playbackEngine.currentTrack?.artist ?? "No artist")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -99,6 +105,10 @@ struct MiniPlayerView: View {
         }
         .padding(16)
         .frame(minWidth: 360, minHeight: 210)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
         .onChange(of: playbackEngine.currentTime) { _, newValue in
             if !isScrubbing {
                 scrubTime = newValue
@@ -135,5 +145,23 @@ struct ArtworkThumbnail: View {
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct MiniNowPlayingPulseDot: View {
+    var body: some View {
+        TimelineView(.animation) { context in
+            let phase = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.2) / 1.2
+            let opacity = 0.45 + (phase * 0.5)
+            let scale = 0.72 + (phase * 0.28)
+
+            Circle()
+                .fill(Color.accentColor)
+                .frame(width: 8, height: 8)
+                .opacity(opacity)
+                .scaleEffect(scale)
+        }
+        .frame(width: 10, height: 10)
+        .accessibilityHidden(true)
     }
 }

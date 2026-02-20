@@ -54,15 +54,21 @@ struct AppShell: View {
                     .listStyle(.sidebar)
                     .navigationTitle("Swifotine")
                 } detail: {
-                    if let selection = selection {
-                        MainContentArea(section: selection)
-                            .environmentObject(searchStore)
-                            .environmentObject(downloadsStore)
-                            .environmentObject(playlistCoverStore)
-                            .environmentObject(playbackEngine)
-                    } else {
-                        Text("Select a section")
+                    ZStack {
+                        if let selection = selection {
+                            MainContentArea(section: selection)
+                                .environmentObject(searchStore)
+                                .environmentObject(downloadsStore)
+                                .environmentObject(playlistCoverStore)
+                                .environmentObject(playbackEngine)
+                                .id(selection.id)
+                                .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                        } else {
+                            Text("Select a section")
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    .animation(.easeInOut(duration: 0.22), value: selection)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -122,17 +128,53 @@ struct HomeView: View {
 }
 
 struct AppBackdrop: View {
+    @State private var animateBackdrop = false
+    @State private var breatheBackdrop = false
+
     var body: some View {
-        LinearGradient(
-            colors: [
-                Color.accentColor.opacity(0.08),
-                Color(NSColor.windowBackgroundColor),
-                Color.accentColor.opacity(0.04),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        GeometryReader { proxy in
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color.accentColor.opacity(0.09),
+                        Color(NSColor.windowBackgroundColor),
+                        Color.accentColor.opacity(0.05),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                Circle()
+                    .fill(Color.accentColor.opacity(0.11))
+                    .frame(width: proxy.size.width * 0.55, height: proxy.size.width * 0.55)
+                    .blur(radius: 42)
+                    .offset(
+                        x: animateBackdrop ? proxy.size.width * 0.2 : -proxy.size.width * 0.16,
+                        y: animateBackdrop ? -proxy.size.height * 0.18 : -proxy.size.height * 0.04
+                    )
+                    .scaleEffect(breatheBackdrop ? 1.06 : 0.94)
+
+                Circle()
+                    .fill(Color.blue.opacity(0.09))
+                    .frame(width: proxy.size.width * 0.4, height: proxy.size.width * 0.4)
+                    .blur(radius: 36)
+                    .offset(
+                        x: animateBackdrop ? -proxy.size.width * 0.16 : proxy.size.width * 0.14,
+                        y: animateBackdrop ? proxy.size.height * 0.14 : proxy.size.height * 0.02
+                    )
+                    .scaleEffect(breatheBackdrop ? 0.95 : 1.05)
+            }
+        }
         .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 15).repeatForever(autoreverses: true)) {
+                animateBackdrop.toggle()
+            }
+            withAnimation(.easeInOut(duration: 9).repeatForever(autoreverses: true)) {
+                breatheBackdrop.toggle()
+            }
+        }
     }
 }
 
@@ -178,9 +220,15 @@ struct PlaybackBottomBar: View {
 
                     if let track = playbackEngine.currentTrack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(track.title)
-                                .font(.headline)
-                                .lineLimit(1)
+                            HStack(spacing: 6) {
+                                if playbackEngine.state == .playing {
+                                    NowPlayingPulseDot()
+                                }
+
+                                Text(track.title)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                            }
                             Text(track.artist)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
@@ -269,5 +317,23 @@ struct PlaybackBottomBar: View {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+}
+
+private struct NowPlayingPulseDot: View {
+    var body: some View {
+        TimelineView(.animation) { context in
+            let phase = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.2) / 1.2
+            let opacity = 0.45 + (phase * 0.5)
+            let scale = 0.72 + (phase * 0.28)
+
+            Circle()
+                .fill(Color.accentColor)
+                .frame(width: 8, height: 8)
+                .opacity(opacity)
+                .scaleEffect(scale)
+        }
+        .frame(width: 10, height: 10)
+        .accessibilityHidden(true)
     }
 }

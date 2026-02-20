@@ -55,11 +55,16 @@ struct LibraryView: View {
             .padding(.top, 8)
             .padding(.bottom, 10)
 
-            if layoutMode == .table {
-                tableLayout
-            } else {
-                gridLayout
+            Group {
+                if layoutMode == .table {
+                    tableLayout
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                } else {
+                    gridLayout
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
             }
+            .animation(.easeInOut(duration: 0.2), value: layoutMode)
         }
         .navigationTitle("Library")
     }
@@ -154,6 +159,7 @@ private struct TrackGridCard: View {
     let track: Track
     let onPlay: () -> Void
     let onToggleLike: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -191,13 +197,19 @@ private struct TrackGridCard: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.thinMaterial)
+                .fill(isHovering ? .regularMaterial : .thinMaterial)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                .stroke(isHovering ? Color.accentColor.opacity(0.2) : Color.primary.opacity(0.06), lineWidth: 1)
         }
+        .shadow(color: Color.black.opacity(isHovering ? 0.14 : 0.06), radius: isHovering ? 14 : 6, y: isHovering ? 7 : 3)
+        .scaleEffect(isHovering ? 1.012 : 1)
+        .animation(.easeOut(duration: 0.16), value: isHovering)
         .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onHover { hovering in
+            isHovering = hovering
+        }
         .onTapGesture(count: 2, perform: onPlay)
     }
 }

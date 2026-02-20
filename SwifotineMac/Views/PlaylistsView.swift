@@ -92,51 +92,47 @@ struct PlaylistsView: View {
     private var playlistList: some View {
         List(selection: $selectedPlaylistID) {
             ForEach(sortedPlaylists) { playlist in
-                HStack(spacing: 10) {
-                    ProceduralCoverView(
-                        seed: coverStore.seed(
-                            for: playlist.id,
-                            name: playlist.name,
-                            fallbackInfluence: sessionStore.username
-                        ),
-                        title: playlist.name,
-                        cornerRadius: 8,
-                        symbolScale: 0.30
-                    )
-                    .frame(width: 40, height: 40)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(playlist.name)
-                            .lineLimit(1)
-                        Text("\(sortedEntries(for: playlist).count) tracks")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                PlaylistSidebarRow(
+                    playlist: playlist,
+                    trackCount: sortedEntries(for: playlist).count,
+                    seed: coverStore.seed(
+                        for: playlist.id,
+                        name: playlist.name,
+                        fallbackInfluence: sessionStore.username
+                    ),
+                    isSelected: playlist.id == selectedPlaylistID
+                )
                 .tag(playlist.id)
             }
         }
         .listStyle(.sidebar)
+        .animation(.easeInOut(duration: 0.2), value: selectedPlaylistID)
     }
 
     @ViewBuilder
     private var playlistDetail: some View {
-        if let playlist = selectedPlaylist {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    playlistHeader(playlist)
-                    playlistTracksSection(playlist)
-                    addTracksSection(playlist)
+        Group {
+            if let playlist = selectedPlaylist {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        playlistHeader(playlist)
+                        playlistTracksSection(playlist)
+                        addTracksSection(playlist)
+                    }
+                    .padding(.trailing, 4)
                 }
-                .padding(.trailing, 4)
+                .id(playlist.id)
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
+            } else {
+                ContentUnavailableView(
+                    "No Playlist Selected",
+                    systemImage: "music.note.list",
+                    description: Text("Create a playlist or choose one from the list.")
+                )
+                .transition(.opacity)
             }
-        } else {
-            ContentUnavailableView(
-                "No Playlist Selected",
-                systemImage: "music.note.list",
-                description: Text("Create a playlist or choose one from the list.")
-            )
         }
+        .animation(.easeInOut(duration: 0.22), value: selectedPlaylistID)
     }
 
     private func playlistHeader(_ playlist: Playlist) -> some View {
@@ -206,61 +202,57 @@ struct PlaylistsView: View {
                 LazyVStack(spacing: 8) {
                     ForEach(entries) { entry in
                         if let track = entry.track {
-                            HStack(spacing: 10) {
-                                TrackArtworkCoverView(
-                                    track: track,
-                                    seed: "\(track.artist)|\(track.album)",
-                                    title: track.album,
-                                    cornerRadius: 8,
-                                    symbolScale: 0.30
-                                )
-                                .frame(width: 40, height: 40)
+                            HoverRowCard(cornerRadius: 10, baseOpacity: 0.08) {
+                                HStack(spacing: 10) {
+                                    TrackArtworkCoverView(
+                                        track: track,
+                                        seed: "\(track.artist)|\(track.album)",
+                                        title: track.album,
+                                        cornerRadius: 8,
+                                        symbolScale: 0.30
+                                    )
+                                    .frame(width: 40, height: 40)
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(track.title)
-                                        .lineLimit(1)
-                                    Text("\(track.artist) - \(track.album)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(track.title)
+                                            .lineLimit(1)
+                                        Text("\(track.artist) - \(track.album)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+
+                                    Spacer()
+
+                                    Button {
+                                        playPlaylist(from: track, in: playlist)
+                                    } label: {
+                                        Image(systemName: "play.fill")
+                                    }
+                                    .buttonStyle(.borderless)
+
+                                    Button {
+                                        playbackEngine.playNext(track: track)
+                                    } label: {
+                                        Image(systemName: "text.line.first.and.arrowtriangle.forward")
+                                    }
+                                    .buttonStyle(.borderless)
+
+                                    Button {
+                                        playbackEngine.enqueue(track: track)
+                                    } label: {
+                                        Image(systemName: "text.badge.plus")
+                                    }
+                                    .buttonStyle(.borderless)
+
+                                    Button(role: .destructive) {
+                                        removeEntry(entry, from: playlist)
+                                    } label: {
+                                        Image(systemName: "trash")
+                                    }
+                                    .buttonStyle(.borderless)
                                 }
-
-                                Spacer()
-
-                                Button {
-                                    playPlaylist(from: track, in: playlist)
-                                } label: {
-                                    Image(systemName: "play.fill")
-                                }
-                                .buttonStyle(.borderless)
-
-                                Button {
-                                    playbackEngine.playNext(track: track)
-                                } label: {
-                                    Image(systemName: "text.line.first.and.arrowtriangle.forward")
-                                }
-                                .buttonStyle(.borderless)
-
-                                Button {
-                                    playbackEngine.enqueue(track: track)
-                                } label: {
-                                    Image(systemName: "text.badge.plus")
-                                }
-                                .buttonStyle(.borderless)
-
-                                Button(role: .destructive) {
-                                    removeEntry(entry, from: playlist)
-                                } label: {
-                                    Image(systemName: "trash")
-                                }
-                                .buttonStyle(.borderless)
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(Color.secondary.opacity(0.08))
-                            )
                         }
                     }
                 }
@@ -283,27 +275,23 @@ struct PlaylistsView: View {
             } else {
                 LazyVStack(spacing: 7) {
                     ForEach(Array(candidates), id: \.id) { track in
-                        HStack(spacing: 10) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(track.title)
-                                    .lineLimit(1)
-                                Text("\(track.artist) - \(track.album)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                        HoverRowCard(cornerRadius: 9, baseOpacity: 0.06, verticalPadding: 6) {
+                            HStack(spacing: 10) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(track.title)
+                                        .lineLimit(1)
+                                    Text("\(track.artist) - \(track.album)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                Spacer()
+                                Button("Add") {
+                                    addTrack(track, to: playlist)
+                                }
+                                .buttonStyle(.bordered)
                             }
-                            Spacer()
-                            Button("Add") {
-                                addTrack(track, to: playlist)
-                            }
-                            .buttonStyle(.bordered)
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .fill(Color.secondary.opacity(0.06))
-                        )
                     }
                 }
             }
@@ -412,5 +400,97 @@ struct PlaylistsView: View {
             for: playlist.id,
             fallbackInfluence: sessionStore.username
         )
+    }
+}
+
+private struct PlaylistSidebarRow: View {
+    let playlist: Playlist
+    let trackCount: Int
+    let seed: String
+    let isSelected: Bool
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ProceduralCoverView(
+                seed: seed,
+                title: playlist.name,
+                cornerRadius: 8,
+                symbolScale: 0.30
+            )
+            .frame(width: 40, height: 40)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(playlist.name)
+                    .lineLimit(1)
+                Text("\(trackCount) tracks")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(6)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(backgroundColor)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(borderColor, lineWidth: isSelected || isHovering ? 1 : 0)
+        }
+        .shadow(color: Color.black.opacity(isHovering && !isSelected ? 0.08 : 0), radius: 8, y: 3)
+        .animation(.easeOut(duration: 0.16), value: isHovering)
+        .onHover { hovering in
+            isHovering = hovering
+        }
+    }
+
+    private var backgroundColor: Color {
+        if isSelected {
+            return Color.accentColor.opacity(0.16)
+        }
+        return isHovering ? Color.secondary.opacity(0.11) : Color.clear
+    }
+
+    private var borderColor: Color {
+        if isSelected {
+            return Color.accentColor.opacity(0.35)
+        }
+        return Color.primary.opacity(0.12)
+    }
+}
+
+private struct HoverRowCard<Content: View>: View {
+    let cornerRadius: CGFloat
+    let baseOpacity: Double
+    let verticalPadding: CGFloat
+    let content: Content
+    @State private var isHovering = false
+
+    init(cornerRadius: CGFloat, baseOpacity: Double, verticalPadding: CGFloat = 8, @ViewBuilder content: () -> Content) {
+        self.cornerRadius = cornerRadius
+        self.baseOpacity = baseOpacity
+        self.verticalPadding = verticalPadding
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(.horizontal, 10)
+            .padding(.vertical, verticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.secondary.opacity(isHovering ? baseOpacity + 0.05 : baseOpacity))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(isHovering ? Color.accentColor.opacity(0.18) : Color.clear, lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(isHovering ? 0.08 : 0), radius: 8, y: 4)
+            .scaleEffect(isHovering ? 1.006 : 1)
+            .animation(.easeOut(duration: 0.16), value: isHovering)
+            .onHover { hovering in
+                isHovering = hovering
+            }
     }
 }

@@ -31,6 +31,7 @@ struct SearchView: View {
     ]
     @State private var activeTabID: UUID = SearchView.initialTabID
     @State private var runningSearchTabID: UUID? = nil
+    @Namespace private var tabAnimationNamespace
 
     private var activeTabIndex: Int? {
         tabs.firstIndex(where: { $0.id == activeTabID })
@@ -191,34 +192,14 @@ struct SearchView: View {
                     enqueueDownload(selectedResult)
                 }
             }
+            .id(activeTabID)
             .frame(minHeight: 320)
+            .animation(.easeInOut(duration: 0.2), value: activeResults.count)
 
             Divider()
 
             GroupBox("File Details") {
-                if let selectedItem {
-                    VStack(alignment: .leading, spacing: 8) {
-                        LabeledContent("Filename", value: selectedItem.filename)
-                        LabeledContent("User", value: selectedItem.peerUsername)
-                        LabeledContent("Size") {
-                            Text(
-                                ByteCountFormatter.string(
-                                    fromByteCount: Int64(selectedItem.size), countStyle: .file))
-                        }
-                        LabeledContent(
-                            "Bitrate", value: selectedItem.bitrate > 0 ? "\(selectedItem.bitrate) kbps" : "Unknown")
-                        LabeledContent("Length", value: formatDuration(selectedItem.length))
-                        LabeledContent("Full Path") {
-                            Text(selectedItem.filePath)
-                                .lineLimit(2)
-                                .truncationMode(.middle)
-                                .textSelection(.enabled)
-                        }
-                    }
-                } else {
-                    Text("Select a result to inspect file details.")
-                        .foregroundStyle(.secondary)
-                }
+                SearchFileDetailsPanel(selectedItem: selectedItem)
             }
             .padding()
         }
@@ -265,6 +246,7 @@ struct SearchView: View {
                                 HStack(spacing: 6) {
                                     Text(tab.title)
                                         .lineLimit(1)
+                                        .fontWeight(tab.id == activeTabID ? .semibold : .regular)
                                     if tab.isSearching {
                                         ProgressView()
                                             .controlSize(.mini)
@@ -272,10 +254,19 @@ struct SearchView: View {
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(tab.id == activeTabID ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.12))
-                                .clipShape(Capsule())
+                                .background {
+                                    if tab.id == activeTabID {
+                                        Capsule()
+                                            .fill(Color.accentColor.opacity(0.2))
+                                            .matchedGeometryEffect(id: "active-search-tab", in: tabAnimationNamespace)
+                                    } else {
+                                        Capsule()
+                                            .fill(Color.secondary.opacity(0.12))
+                                    }
+                                }
                             }
                             .buttonStyle(.plain)
+                            .animation(.easeInOut(duration: 0.2), value: activeTabID)
 
                             if tabs.count > 1 {
                                 Button {
@@ -418,5 +409,91 @@ struct SearchView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+private struct SearchFileDetailsPanel: View {
+    let selectedItem: SearchResultItem?
+
+    var body: some View {
+        ZStack {
+            if let selectedItem {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 10) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .fill(Color.accentColor.opacity(0.14))
+                            Image(systemName: "music.note")
+                                .foregroundStyle(Color.accentColor)
+                        }
+                        .frame(width: 42, height: 42)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(selectedItem.filename)
+                                .font(.headline)
+                                .lineLimit(1)
+                            Text("From \(selectedItem.peerUsername)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        detailChip(
+                            label: "Size",
+                            value: ByteCountFormatter.string(
+                                fromByteCount: Int64(selectedItem.size), countStyle: .file)
+                        )
+                        detailChip(label: "Length", value: formatDuration(selectedItem.length))
+                        detailChip(
+                            label: "Bitrate",
+                            value: selectedItem.bitrate > 0 ? "\(selectedItem.bitrate) kbps" : "Unknown"
+                        )
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Path")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(selectedItem.filePath)
+                            .font(.caption.monospaced())
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            } else {
+                Text("Select a result to inspect file details.")
+                    .foregroundStyle(.secondary)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(.easeInOut(duration: 0.2), value: selectedItem?.id)
+    }
+
+    private func detailChip(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.caption.weight(.medium))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(Color.secondary.opacity(0.12))
+        )
+    }
+
+    private func formatDuration(_ seconds: Int) -> String {
+        guard seconds > 0 else { return "Unknown" }
+        let minutes = seconds / 60
+        let secs = seconds % 60
+        return String(format: "%d:%02d", minutes, secs)
     }
 }
