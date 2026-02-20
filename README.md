@@ -52,8 +52,10 @@ Outputs:
 ## Notes on downloads
 
 - Search downloads are enqueued through the helper RPC method `download.enqueue`.
-- The helper now force-initializes share readiness for queue dispatch when needed, which prevents transfers from remaining stuck in a local queued state.
+- Search results now use the actual remote peer username from Nicotine+ responses.
+- The helper force-initializes share readiness for queue dispatch when needed, preventing transfers from remaining stuck in a local queued state.
 - Download updates carry stable transfer IDs derived from source user + virtual path, improving state tracking.
+- Smart source failover: when downloading a selected file, the app can enqueue additional matching peers (same path/size) to improve start reliability when a single source stalls.
 
 ## Additional docs
 

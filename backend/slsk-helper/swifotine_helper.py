@@ -76,7 +76,8 @@ class SwifotineHelper:
     def on_search_result(self, msg, *args):
         if getattr(msg, "list", None) is None:
             return
-        username = getattr(msg, "search_username", getattr(msg, "username", "unknown"))
+        # `msg.username` is the remote peer that can actually upload the file.
+        username = getattr(msg, "username", None) or getattr(msg, "search_username", "unknown")
         token = getattr(msg, "token", "unknown")
         for res in msg.list:
             if len(res) >= 3:
@@ -86,8 +87,12 @@ class SwifotineHelper:
                 self.emit_event("search.result", {
                     "token": token,
                     "peer_username": username,
+                    "search_username": getattr(msg, "search_username", ""),
                     "file_path": filepath,
                     "size": size,
+                    "free_upload_slots": getattr(msg, "freeulslots", 0),
+                    "queue_size": getattr(msg, "inqueue", 0),
+                    "upload_speed": getattr(msg, "ulspeed", 0),
                     "bitrate": attrs.get("bitrate", 0) if isinstance(attrs, dict) else 0,
                     "length": attrs.get("length", 0) if isinstance(attrs, dict) else 0
                 })

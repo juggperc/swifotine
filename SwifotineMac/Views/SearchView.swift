@@ -342,9 +342,9 @@ struct SearchView: View {
 
     private func enqueueDownload(_ item: SearchResultItem) {
         Task {
-            let didEnqueue = await store.enqueueDownload(for: item)
-            if didEnqueue {
-                downloadsStore.noteQueuedDownload(for: item)
+            let queuedItems = await store.enqueueDownloadWithFallback(for: item, candidates: activeResults)
+            for queuedItem in queuedItems {
+                downloadsStore.noteQueuedDownload(for: queuedItem)
             }
         }
     }

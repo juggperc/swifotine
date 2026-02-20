@@ -103,6 +103,48 @@ class SearchStore: ObservableObject {
     }
 
     func enqueueDownload(for item: SearchResultItem) async -> Bool {
+        await enqueueDownloadInternal(for: item)
+    }
+
+    func enqueueDownloadWithFallback(for item: SearchResultItem, candidates: [SearchResultItem]) async
+        -> [SearchResultItem]
+    {
+        lastDownloadError = nil
+
+        // Creative failover: enqueue same file from additional peers so a stalled source
+        // can be bypassed without manual retries.
+        let fallbackCandidates = candidates.filter {
+            $0.id != item.id
+                && $0.filePath == item.filePath
+                && $0.size == item.size
+                && $0.peerUsername != item.peerUsername
+        }
+        .sorted { lhs, rhs in
+            if lhs.bitrate != rhs.bitrate {
+                return lhs.bitrate > rhs.bitrate
+            }
+            return lhs.peerUsername < rhs.peerUsername
+        }
+
+        var queuePlan: [SearchResultItem] = [item]
+        queuePlan.append(contentsOf: fallbackCandidates.prefix(2))
+
+        var enqueuedItems: [SearchResultItem] = []
+        for candidate in queuePlan {
+            let didEnqueue = await enqueueDownloadInternal(for: candidate)
+            if didEnqueue {
+                enqueuedItems.append(candidate)
+            }
+        }
+
+        if enqueuedItems.isEmpty {
+            lastDownloadError = lastDownloadError ?? "Failed to enqueue selected file."
+        }
+
+        return enqueuedItems
+    }
+
+    private func enqueueDownloadInternal(for item: SearchResultItem) async -> Bool {
         lastDownloadError = nil
 
         do {
