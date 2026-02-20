@@ -53,6 +53,15 @@ From repo root:
 ./scripts/build_release_dmg.sh 1.0
 ```
 
+For public distribution (recommended):
+
+```bash
+export SWIFOTINE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+export SWIFOTINE_NOTARIZE=1
+export SWIFOTINE_NOTARY_PROFILE="AC_NOTARY_PROFILE" # or APPLE_ID/TEAM_ID/APP_PASSWORD vars
+./scripts/build_release_dmg.sh 1.0
+```
+
 Outputs:
 
 - `dist/Swifotine.app`
@@ -66,7 +75,12 @@ Outputs:
 - Download updates carry stable transfer IDs derived from source user + virtual path, improving state tracking.
 - Smart source failover: when downloading a selected file, the app can enqueue additional matching peers (same path/size) to improve start reliability when a single source stalls.
 - Transfer state is serialized to `~/Library/Application Support/Swifotine/downloads-state.json` and restored at launch.
-- Track metadata parsing now uses filename + folder heuristics for better artist/album/title detection.
+- Track metadata parsing now prefers embedded tags, then falls back to filename + folder heuristics.
+
+## Distribution notes (Gatekeeper)
+
+- Release builds are now packaged as universal binaries (`arm64` + `x86_64`) by default.
+- If users see “The app could not be opened”, distribute a Developer ID signed + notarized DMG (see build section above).
 
 ## Notes on search
 
