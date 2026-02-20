@@ -30,9 +30,12 @@ class SwifotineHelper:
             "buddies", "privatechat", "pluginhandler"
         }
         
-        # Prevent default config from trying to write to standard config dir by setting isolated mode or overriding
-        os.environ['XDG_CONFIG_HOME'] = os.path.join(os.getcwd(), '.nicotine-data')
-        os.makedirs(os.environ['XDG_CONFIG_HOME'], exist_ok=True)
+        # Keep helper config in app-specific user data, not in the launch CWD.
+        helper_config_root = os.path.join(
+            os.path.expanduser("~"), "Library", "Application Support", "Swifotine", "nicotine-config"
+        )
+        os.makedirs(helper_config_root, exist_ok=True)
+        os.environ['XDG_CONFIG_HOME'] = helper_config_root
         
         core.init_components(enabled_components=enabled, isolated_mode=True)
         
@@ -91,6 +94,8 @@ class SwifotineHelper:
         status = getattr(transfer, "status", "unknown")
         self.emit_event("download.updated", {
             "transfer_id": getattr(transfer, "id", "unknown"),
+            "source_username": getattr(transfer, "user", "unknown"),
+            "virtual_path": getattr(transfer, "virtual_path", ""),
             "status": str(status),
             "bytes_transferred": getattr(transfer, "transferred", 0),
             "total": getattr(transfer, "size", 0),
@@ -116,8 +121,23 @@ class SwifotineHelper:
     def on_quit(self, *args):
         self.is_running = False
 
+    def _normalize_payload(self, payload):
+        if not isinstance(payload, dict):
+            return {}
+
+        normalized = {}
+        for key, value in payload.items():
+            if value is None:
+                normalized[str(key)] = ""
+            elif isinstance(value, (dict, list)):
+                normalized[str(key)] = json.dumps(value, separators=(",", ":"), default=str)
+            else:
+                normalized[str(key)] = str(value)
+
+        return normalized
+
     def emit_event(self, event_name, payload):
-        sys.stdout.write(json.dumps({"event": event_name, "payload": payload}) + "\n")
+        sys.stdout.write(json.dumps({"event": event_name, "payload": self._normalize_payload(payload)}) + "\n")
         sys.stdout.flush()
 
     def respond(self, request_id, result=None, error=None):

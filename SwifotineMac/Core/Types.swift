@@ -82,7 +82,7 @@ class SessionStore: ObservableObject {
             try FileManager.default.createDirectory(
                 atPath: incompleteFolder, withIntermediateDirectories: true)
 
-            _ = try await client.sendRequest(
+            let configureResponse = try await client.sendRequest(
                 method: "session.configure",
                 params: [
                     "username": username,
@@ -90,11 +90,26 @@ class SessionStore: ObservableObject {
                     "downloadRoot": downloadsFolder,
                     "incompleteRoot": incompleteFolder,
                 ])
+            try validateRPCResponse(configureResponse, fallbackMessage: "Failed to configure session.")
 
-            _ = try await client.sendRequest(method: "session.connect", params: nil)
+            let connectResponse = try await client.sendRequest(method: "session.connect", params: nil)
+            try validateRPCResponse(connectResponse, fallbackMessage: "Failed to connect session.")
         } catch {
             self.connectionState = .error
             self.lastError = error.localizedDescription
         }
+    }
+
+    private func validateRPCResponse(_ response: RPCResponse, fallbackMessage: String) throws {
+        if response.ok == true {
+            return
+        }
+
+        let message = response.error?.message ?? fallbackMessage
+        throw NSError(
+            domain: "SessionStore",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
     }
 }

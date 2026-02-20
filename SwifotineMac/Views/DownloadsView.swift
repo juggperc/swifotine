@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DownloadsView: View {
-    @StateObject private var store = DownloadsStore()
+    @EnvironmentObject private var store: DownloadsStore
 
     var body: some View {
         VStack {
@@ -13,11 +13,13 @@ struct DownloadsView: View {
             } else {
                 List(store.activeTransfers) { tx in
                     VStack(alignment: .leading) {
-                        Text(tx.localPath)
+                        Text(tx.localPath.isEmpty ? tx.virtualPath : tx.localPath)
                             .font(.headline)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
 
                         HStack {
-                            Text(tx.status)
+                            Text("\(tx.sourceUsername) · \(tx.status)")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 

@@ -4,6 +4,7 @@ import SwiftData
 public struct DownloadTransfer: Identifiable, Hashable {
     public let id: String
     public let virtualPath: String
+    public let sourceUsername: String
     public var status: String
     public var bytesTransferred: Int
     public var totalSize: Int
@@ -45,6 +46,8 @@ class DownloadsStore: ObservableObject {
                     {
 
                         let path = payload["local_path"] ?? ""
+                        let sourceUsername = payload["source_username"] ?? "unknown"
+                        let virtualPath = payload["virtual_path"] ?? ""
 
                         if let index = activeTransfers.firstIndex(where: { $0.id == id }) {
                             activeTransfers[index].status = status
@@ -54,10 +57,25 @@ class DownloadsStore: ObservableObject {
                             activeTransfers[index].eta = eta
                             activeTransfers[index].localPath = path
                         } else {
+                            if let queuedIndex = activeTransfers.firstIndex(where: {
+                                $0.id == queuedTransferID(
+                                    username: sourceUsername, virtualPath: virtualPath)
+                            }) {
+                                activeTransfers.remove(at: queuedIndex)
+                            }
+
                             let tx = DownloadTransfer(
-                                id: id, virtualPath: "", status: status, bytesTransferred: xferred,
-                                totalSize: total, speed: speed, eta: eta, localPath: path)
-                            activeTransfers.append(tx)
+                                id: id,
+                                virtualPath: virtualPath,
+                                sourceUsername: sourceUsername,
+                                status: status,
+                                bytesTransferred: xferred,
+                                totalSize: total,
+                                speed: speed,
+                                eta: eta,
+                                localPath: path
+                            )
+                            activeTransfers.insert(tx, at: 0)
                         }
                     }
 
@@ -111,5 +129,33 @@ class DownloadsStore: ObservableObject {
                 }
             }
         }
+    }
+
+    func noteQueuedDownload(for item: SearchResultItem) {
+        let queuedID = queuedTransferID(username: item.peerUsername, virtualPath: item.filePath)
+
+        if activeTransfers.contains(where: {
+            $0.id == queuedID || ($0.sourceUsername == item.peerUsername && $0.virtualPath == item.filePath)
+        }) {
+            return
+        }
+
+        let queuedTransfer = DownloadTransfer(
+            id: queuedID,
+            virtualPath: item.filePath,
+            sourceUsername: item.peerUsername,
+            status: "Queued",
+            bytesTransferred: 0,
+            totalSize: item.size,
+            speed: 0,
+            eta: 0,
+            localPath: item.filePath
+        )
+
+        activeTransfers.insert(queuedTransfer, at: 0)
+    }
+
+    private func queuedTransferID(username: String, virtualPath: String) -> String {
+        "queued:\(username):\(virtualPath)"
     }
 }
