@@ -6,9 +6,8 @@ extension BackendClient {
             let cancellable = self.eventSubject.sink { event in
                 continuation.yield(event)
             }
-            // Keep strong ref to it (simplified, assumes app lifecycle)
-            Task {
-                var c = cancellable  // retaining
+            continuation.onTermination = { @Sendable _ in
+                cancellable.cancel()
             }
         }
     }

@@ -18,7 +18,6 @@ actor BackendClient {
     func launchHelper() async {
         guard helperProcess == nil else { return }
 
-        let bundlePath = Bundle.main.bundlePath
         // Due to SwiftPM, the python script might not be in Resources, so we fall back or find it.
         var helperPath = Bundle.main.path(forResource: "swifotine_helper", ofType: "py")
         if helperPath == nil {

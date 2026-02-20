@@ -31,7 +31,9 @@ class PlaybackEngine: ObservableObject {
         timeObserver = p.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 1, preferredTimescale: 600), queue: .main
         ) { [weak self] time in
-            self?.currentTime = time.seconds
+            Task { @MainActor in
+                self?.currentTime = time.seconds
+            }
         }
     }
 
