@@ -185,50 +185,97 @@ actor AudioVisualizerAnalyzer {
 
     private func loadMonoSamples(from file: AVAudioFile) throws -> [Float] {
         let chunkSize: AVAudioFrameCount = 32_768
-        let channelCount = Int(file.processingFormat.channelCount)
+        let format = file.processingFormat
+        let channelCount = Int(format.channelCount)
         guard channelCount > 0 else { return [] }
 
         var samples: [Float] = []
         let channelDivisor = Float(channelCount)
+        let isInterleaved = format.isInterleaved
 
         while true {
             guard let buffer = AVAudioPCMBuffer(
-                pcmFormat: file.processingFormat,
+                pcmFormat: format,
                 frameCapacity: chunkSize
             ) else {
                 break
             }
 
-            try file.read(into: buffer, frameCount: chunkSize)
+            do {
+                try file.read(into: buffer, frameCount: chunkSize)
+            } catch {
+                // AVAudioFile can emit nilError at EOF for compressed formats.
+                if samples.isEmpty {
+                    throw error
+                }
+                break
+            }
+
             let frameLength = Int(buffer.frameLength)
             if frameLength == 0 { break }
 
             if let floatChannelData = buffer.floatChannelData {
                 samples.reserveCapacity(samples.count + frameLength)
-                for frame in 0..<frameLength {
-                    var sample: Float = 0
-                    for channel in 0..<channelCount {
-                        sample += floatChannelData[channel][frame]
+                if isInterleaved {
+                    let channelData = floatChannelData[0]
+                    for frame in 0..<frameLength {
+                        let frameOffset = frame * channelCount
+                        var sample: Float = 0
+                        for channel in 0..<channelCount {
+                            sample += channelData[frameOffset + channel]
+                        }
+                        samples.append(sample / channelDivisor)
                     }
-                    samples.append(sample / channelDivisor)
+                } else {
+                    for frame in 0..<frameLength {
+                        var sample: Float = 0
+                        for channel in 0..<channelCount {
+                            sample += floatChannelData[channel][frame]
+                        }
+                        samples.append(sample / channelDivisor)
+                    }
                 }
             } else if let int16ChannelData = buffer.int16ChannelData {
                 samples.reserveCapacity(samples.count + frameLength)
-                for frame in 0..<frameLength {
-                    var sample: Float = 0
-                    for channel in 0..<channelCount {
-                        sample += Float(int16ChannelData[channel][frame]) / Float(Int16.max)
+                if isInterleaved {
+                    let channelData = int16ChannelData[0]
+                    for frame in 0..<frameLength {
+                        let frameOffset = frame * channelCount
+                        var sample: Float = 0
+                        for channel in 0..<channelCount {
+                            sample += Float(channelData[frameOffset + channel]) / Float(Int16.max)
+                        }
+                        samples.append(sample / channelDivisor)
                     }
-                    samples.append(sample / channelDivisor)
+                } else {
+                    for frame in 0..<frameLength {
+                        var sample: Float = 0
+                        for channel in 0..<channelCount {
+                            sample += Float(int16ChannelData[channel][frame]) / Float(Int16.max)
+                        }
+                        samples.append(sample / channelDivisor)
+                    }
                 }
             } else if let int32ChannelData = buffer.int32ChannelData {
                 samples.reserveCapacity(samples.count + frameLength)
-                for frame in 0..<frameLength {
-                    var sample: Float = 0
-                    for channel in 0..<channelCount {
-                        sample += Float(int32ChannelData[channel][frame]) / Float(Int32.max)
+                if isInterleaved {
+                    let channelData = int32ChannelData[0]
+                    for frame in 0..<frameLength {
+                        let frameOffset = frame * channelCount
+                        var sample: Float = 0
+                        for channel in 0..<channelCount {
+                            sample += Float(channelData[frameOffset + channel]) / Float(Int32.max)
+                        }
+                        samples.append(sample / channelDivisor)
                     }
-                    samples.append(sample / channelDivisor)
+                } else {
+                    for frame in 0..<frameLength {
+                        var sample: Float = 0
+                        for channel in 0..<channelCount {
+                            sample += Float(int32ChannelData[channel][frame]) / Float(Int32.max)
+                        }
+                        samples.append(sample / channelDivisor)
+                    }
                 }
             } else {
                 return []
