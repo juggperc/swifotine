@@ -10,7 +10,10 @@ Native macOS Soulseek client prototype built with SwiftUI, SwiftData, and a Pyth
   - persistent search history
   - file metadata/details panel
 - Queue and monitor downloads from search results.
-- Organize completed files into your local library.
+- Persist download transfer state across app relaunches.
+- Organize completed files into your local library (SwiftData persistent store).
+- Native music playback with timeline scrubbing, artwork, and a mini player window.
+- Acknowledgements pop-out (Help menu) for bundled/open-source dependencies.
 - Package into a standalone `.app` and `.dmg`.
 
 ## Repository layout
@@ -56,6 +59,15 @@ Outputs:
 - The helper force-initializes share readiness for queue dispatch when needed, preventing transfers from remaining stuck in a local queued state.
 - Download updates carry stable transfer IDs derived from source user + virtual path, improving state tracking.
 - Smart source failover: when downloading a selected file, the app can enqueue additional matching peers (same path/size) to improve start reliability when a single source stalls.
+- Transfer state is serialized to `~/Library/Application Support/Swifotine/downloads-state.json` and restored at launch.
+
+## Useful shortcuts
+
+- `⌘P`: Play/Pause
+- `⌘.`: Stop playback
+- `⌘[` / `⌘]`: Seek back/forward 10 seconds
+- `⌘⇧M`: Show mini player
+- `⌘⌥A`: Show Acknowledgements
 
 ## Additional docs
 

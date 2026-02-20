@@ -13,13 +13,29 @@ public struct DownloadTransfer: Identifiable, Hashable {
     public var localPath: String
 }
 
+extension DownloadTransfer: Codable {}
+
 @MainActor
 class DownloadsStore: ObservableObject {
     @Published var activeTransfers: [DownloadTransfer] = []
 
     private var modelContext: ModelContext?
+    private var pendingCompletedPaths: [String] = []
+    private let persistenceURL: URL = {
+        let appSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first!.appendingPathComponent("Swifotine", isDirectory: true)
+        try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
+        return appSupport.appendingPathComponent("downloads-state.json")
+    }()
+
+    private struct PersistedDownloadsState: Codable {
+        let savedAt: Date
+        let transfers: [DownloadTransfer]
+    }
 
     init() {
+        restorePersistedState()
         Task {
             await bindEvents()
         }
@@ -27,6 +43,7 @@ class DownloadsStore: ObservableObject {
 
     func setup(modelContext: ModelContext) {
         self.modelContext = modelContext
+        flushPendingCompletedPaths()
     }
 
     private func bindEvents() async {
@@ -56,6 +73,7 @@ class DownloadsStore: ObservableObject {
                             activeTransfers[index].speed = speed
                             activeTransfers[index].eta = eta
                             activeTransfers[index].localPath = path
+                            persistState()
                         } else {
                             if let queuedIndex = activeTransfers.firstIndex(where: {
                                 $0.id == queuedTransferID(
@@ -76,44 +94,13 @@ class DownloadsStore: ObservableObject {
                                 localPath: path
                             )
                             activeTransfers.insert(tx, at: 0)
+                            persistState()
                         }
                     }
 
                 case "download.finished":
                     if let localPath = payload["local_file_path"], !localPath.isEmpty {
-                        // Mark UI as finished or remove from active queue later
-
-                        // Let AutoOrganizer run
-                        if let finalPath = AutoOrganizer.shared.organize(downloadedPath: localPath)
-                        {
-
-                            // Let's create a SwiftData Track
-                            if let context = self.modelContext {
-                                let url = URL(fileURLWithPath: finalPath)
-                                let name = url.lastPathComponent
-                                let ext = url.pathExtension
-
-                                let nameWithoutExt = name.replacingOccurrences(
-                                    of: ".\(ext)", with: "")
-                                var artist = "Unknown Artist"
-                                var title = nameWithoutExt
-
-                                if let dashRange = nameWithoutExt.range(of: " - ") {
-                                    artist = String(nameWithoutExt[..<dashRange.lowerBound])
-                                        .trimmingCharacters(in: .whitespaces)
-                                    title = String(nameWithoutExt[dashRange.upperBound...])
-                                        .trimmingCharacters(in: .whitespaces)
-                                }
-
-                                let newTrack = Track(
-                                    title: title, artist: artist, album: "Unknown Album",
-                                    localPath: finalPath)
-                                context.insert(newTrack)
-
-                                try? context.save()
-                                print("Track saved to Library layer: \(title) by \(artist)")
-                            }
-                        }
+                        handleCompletedDownload(localPath)
                     }
 
                 case "download.failed":
@@ -121,6 +108,7 @@ class DownloadsStore: ObservableObject {
                         if let index = activeTransfers.firstIndex(where: { $0.id == id }) {
                             activeTransfers[index].status =
                                 "Failed: \(payload["categorized_reason"] ?? "Unknown")"
+                            persistState()
                         } else if let sourceUsername = payload["source_username"],
                             let virtualPath = payload["virtual_path"]
                         {
@@ -130,6 +118,7 @@ class DownloadsStore: ObservableObject {
                             {
                                 activeTransfers[queuedIndex].status =
                                     "Failed: \(payload["categorized_reason"] ?? "Unknown")"
+                                persistState()
                             }
                         }
                     }
@@ -163,9 +152,90 @@ class DownloadsStore: ObservableObject {
         )
 
         activeTransfers.insert(queuedTransfer, at: 0)
+        persistState()
     }
 
     private func queuedTransferID(username: String, virtualPath: String) -> String {
         "queued:\(username):\(virtualPath)"
+    }
+
+    private func handleCompletedDownload(_ localPath: String) {
+        guard let finalPath = AutoOrganizer.shared.organize(downloadedPath: localPath) else {
+            return
+        }
+
+        guard let context = modelContext else {
+            if !pendingCompletedPaths.contains(finalPath) {
+                pendingCompletedPaths.append(finalPath)
+            }
+            return
+        }
+
+        insertTrackIfNeeded(finalPath: finalPath, context: context)
+    }
+
+    private func flushPendingCompletedPaths() {
+        guard let context = modelContext else { return }
+        guard !pendingCompletedPaths.isEmpty else { return }
+
+        for finalPath in pendingCompletedPaths {
+            insertTrackIfNeeded(finalPath: finalPath, context: context)
+        }
+        pendingCompletedPaths.removeAll()
+    }
+
+    private func insertTrackIfNeeded(finalPath: String, context: ModelContext) {
+        let descriptor = FetchDescriptor<Track>()
+        if let existingTracks = try? context.fetch(descriptor),
+            existingTracks.contains(where: { $0.localPath == finalPath })
+        {
+            return
+        }
+
+        let url = URL(fileURLWithPath: finalPath)
+        let name = url.lastPathComponent
+        let ext = url.pathExtension
+        let nameWithoutExt = name.replacingOccurrences(of: ".\(ext)", with: "")
+
+        var artist = "Unknown Artist"
+        var title = nameWithoutExt
+
+        if let dashRange = nameWithoutExt.range(of: " - ") {
+            artist = String(nameWithoutExt[..<dashRange.lowerBound]).trimmingCharacters(
+                in: .whitespaces)
+            title = String(nameWithoutExt[dashRange.upperBound...]).trimmingCharacters(
+                in: .whitespaces)
+        }
+
+        let newTrack = Track(
+            title: title,
+            artist: artist,
+            album: "Unknown Album",
+            localPath: finalPath
+        )
+        context.insert(newTrack)
+        try? context.save()
+        print("Track saved to Library layer: \(title) by \(artist)")
+    }
+
+    private func persistState() {
+        let snapshot = PersistedDownloadsState(savedAt: Date(), transfers: activeTransfers)
+        do {
+            let data = try JSONEncoder().encode(snapshot)
+            try data.write(to: persistenceURL, options: [.atomic])
+        } catch {
+            print("Failed to persist downloads state: \(error)")
+        }
+    }
+
+    private func restorePersistedState() {
+        guard FileManager.default.fileExists(atPath: persistenceURL.path) else { return }
+        do {
+            let data = try Data(contentsOf: persistenceURL)
+            let snapshot = try JSONDecoder().decode(PersistedDownloadsState.self, from: data)
+            activeTransfers = snapshot.transfers
+        } catch {
+            print("Failed to restore downloads state: \(error)")
+        }
     }
 }

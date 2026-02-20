@@ -40,23 +40,27 @@ struct AppShell: View {
 
     var body: some View {
         if sessionStore.connectionState == .online {
-            NavigationSplitView {
-                List(selection: $selection) {
-                    ForEach(SidebarSection.allCases) { section in
-                        Label(section.rawValue, systemImage: section.iconName)
-                            .tag(section)
+            ZStack {
+                AppBackdrop()
+
+                NavigationSplitView {
+                    List(selection: $selection) {
+                        ForEach(SidebarSection.allCases) { section in
+                            Label(section.rawValue, systemImage: section.iconName)
+                                .tag(section)
+                        }
                     }
-                }
-                .listStyle(.sidebar)
-                .navigationTitle("Swifotine")
-            } detail: {
-                if let selection = selection {
-                    MainContentArea(section: selection)
-                        .environmentObject(searchStore)
-                        .environmentObject(downloadsStore)
-                        .environmentObject(playbackEngine)
-                } else {
-                    Text("Select a section")
+                    .listStyle(.sidebar)
+                    .navigationTitle("Swifotine")
+                } detail: {
+                    if let selection = selection {
+                        MainContentArea(section: selection)
+                            .environmentObject(searchStore)
+                            .environmentObject(downloadsStore)
+                            .environmentObject(playbackEngine)
+                    } else {
+                        Text("Select a section")
+                    }
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -97,9 +101,21 @@ struct MainContentArea: View {
 
 struct HomeView: View {
     var body: some View {
-        Text("Home / Recommendations")
-            .navigationTitle("Home")
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 16) {
+            Text("Welcome to Swifotine")
+                .font(.title2.weight(.semibold))
+
+            Text("Search, download, and play your library with a native macOS workflow.")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button("View Acknowledgements") {
+                AcknowledgementsWindowController.shared.show()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+        .navigationTitle("Home")
     }
 }
 
@@ -111,73 +127,136 @@ struct PlaylistsView: View {
     }
 }
 
+struct AppBackdrop: View {
+    var body: some View {
+        LinearGradient(
+            colors: [
+                Color.accentColor.opacity(0.08),
+                Color(NSColor.windowBackgroundColor),
+                Color.accentColor.opacity(0.04),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
+}
+
 struct PlaybackBottomBar: View {
     @EnvironmentObject var playbackEngine: PlaybackEngine
+    @State private var isScrubbing = false
+    @State private var scrubTime: Double = 0
 
     var body: some View {
         VStack(spacing: 0) {
             Divider()
-            HStack {
-                if let track = playbackEngine.currentTrack {
-                    VStack(alignment: .leading) {
-                        Text(track.title)
-                            .font(.headline)
-                            .lineLimit(1)
-                        Text(track.artist)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                    .frame(width: 200, alignment: .leading)
-                } else {
-                    Text("Not Playing")
-                        .foregroundColor(.secondary)
-                        .frame(width: 200, alignment: .leading)
-                }
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    Text(formatTime(playbackEngine.currentTime))
+                        .monospacedDigit()
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 52, alignment: .leading)
 
-                Spacer()
-
-                HStack(spacing: 20) {
-                    Button(action: {
-                        playbackEngine.stop()
-                    }) {
-                        Image(systemName: "stop.fill")
-                            .imageScale(.large)
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: {
-                        if playbackEngine.state == .playing {
-                            playbackEngine.pause()
-                        } else if playbackEngine.state == .paused {
-                            playbackEngine.resume()
-                        } else if let track = playbackEngine.currentTrack {
-                            playbackEngine.play(track: track)
+                    Slider(
+                        value: Binding(
+                            get: { isScrubbing ? scrubTime : playbackEngine.currentTime },
+                            set: { newValue in scrubTime = newValue }
+                        ),
+                        in: 0...max(playbackEngine.duration, 1),
+                        onEditingChanged: { editing in
+                            isScrubbing = editing
+                            if !editing {
+                                playbackEngine.seek(to: scrubTime)
+                            }
                         }
-                    }) {
-                        Image(
-                            systemName: playbackEngine.state == .playing
-                                ? "pause.circle.fill" : "play.circle.fill"
-                        )
-                        .resizable()
-                        .frame(width: 32, height: 32)
-                    }
-                    .buttonStyle(.plain)
+                    )
+
+                    Text(formatTime(playbackEngine.duration))
+                        .monospacedDigit()
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 52, alignment: .trailing)
                 }
 
-                Spacer()
+                HStack(spacing: 12) {
+                    ArtworkThumbnail(image: playbackEngine.currentArtwork, size: 44)
 
-                Text(formatTime(playbackEngine.currentTime))
-                    .monospacedDigit()
-                    .font(.caption)
-                    .frame(width: 50, alignment: .trailing)
+                    if let track = playbackEngine.currentTrack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(track.title)
+                                .font(.headline)
+                                .lineLimit(1)
+                            Text(track.artist)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: 280, alignment: .leading)
+                    } else {
+                        Text("Not Playing")
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: 280, alignment: .leading)
+                    }
+
+                    Spacer()
+
+                    HStack(spacing: 12) {
+                        Button {
+                            playbackEngine.seek(by: -10)
+                        } label: {
+                            Image(systemName: "gobackward.10")
+                        }
+                        .help("Back 10 Seconds")
+
+                        Button {
+                            playbackEngine.togglePlayPause()
+                        } label: {
+                            Image(systemName: playbackEngine.state == .playing ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 28))
+                        }
+                        .help("Play or Pause")
+
+                        Button {
+                            playbackEngine.seek(by: 10)
+                        } label: {
+                            Image(systemName: "goforward.10")
+                        }
+                        .help("Forward 10 Seconds")
+
+                        Button {
+                            playbackEngine.stop()
+                        } label: {
+                            Image(systemName: "stop.fill")
+                        }
+                        .help("Stop Playback")
+
+                        Divider()
+                            .frame(height: 20)
+
+                        Button {
+                            playbackEngine.toggleMiniPlayer()
+                        } label: {
+                            Image(systemName: "pip")
+                        }
+                        .help("Open Mini Player")
+                    }
+                    .buttonStyle(.borderless)
+                }
             }
-            .padding()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
             .background(.regularMaterial)
+        }
+        .onChange(of: playbackEngine.currentTime) { _, newValue in
+            if !isScrubbing {
+                scrubTime = newValue
+            }
         }
     }
 
     private func formatTime(_ time: Double) -> String {
+        guard time.isFinite, time > 0 else { return "00:00" }
         let totalSeconds = Int(time)
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60

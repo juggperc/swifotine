@@ -43,6 +43,60 @@ struct SwifotineApp: App {
     @CommandsBuilder
     func appCommands() -> some Commands {
         CommandGroup(replacing: .newItem) {}
+        PlaybackCommands()
+        SupportCommands()
+    }
+}
+
+struct PlaybackCommands: Commands {
+    @ObservedObject private var playbackEngine = PlaybackEngine.shared
+
+    var body: some Commands {
+        CommandMenu("Playback") {
+            Button(playbackEngine.state == .playing ? "Pause" : "Play") {
+                playbackEngine.togglePlayPause()
+            }
+            .keyboardShortcut("p", modifiers: [.command])
+            .disabled(playbackEngine.currentTrack == nil)
+
+            Button("Stop") {
+                playbackEngine.stop()
+            }
+            .keyboardShortcut(".", modifiers: [.command])
+            .disabled(playbackEngine.currentTrack == nil)
+
+            Divider()
+
+            Button("Back 10 Seconds") {
+                playbackEngine.seek(by: -10)
+            }
+            .keyboardShortcut("[", modifiers: [.command])
+            .disabled(playbackEngine.currentTrack == nil)
+
+            Button("Forward 10 Seconds") {
+                playbackEngine.seek(by: 10)
+            }
+            .keyboardShortcut("]", modifiers: [.command])
+            .disabled(playbackEngine.currentTrack == nil)
+
+            Divider()
+
+            Button("Show Mini Player") {
+                playbackEngine.showMiniPlayer()
+            }
+            .keyboardShortcut("m", modifiers: [.command, .shift])
+        }
+    }
+}
+
+struct SupportCommands: Commands {
+    var body: some Commands {
+        CommandGroup(after: .help) {
+            Button("Acknowledgements") {
+                AcknowledgementsWindowController.shared.show()
+            }
+            .keyboardShortcut("a", modifiers: [.command, .option])
+        }
     }
 }
 
