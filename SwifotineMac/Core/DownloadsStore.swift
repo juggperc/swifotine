@@ -192,30 +192,17 @@ class DownloadsStore: ObservableObject {
             return
         }
 
-        let url = URL(fileURLWithPath: finalPath)
-        let name = url.lastPathComponent
-        let ext = url.pathExtension
-        let nameWithoutExt = name.replacingOccurrences(of: ".\(ext)", with: "")
-
-        var artist = "Unknown Artist"
-        var title = nameWithoutExt
-
-        if let dashRange = nameWithoutExt.range(of: " - ") {
-            artist = String(nameWithoutExt[..<dashRange.lowerBound]).trimmingCharacters(
-                in: .whitespaces)
-            title = String(nameWithoutExt[dashRange.upperBound...]).trimmingCharacters(
-                in: .whitespaces)
-        }
+        let parsed = TrackMetadataParser.parse(localPath: finalPath)
 
         let newTrack = Track(
-            title: title,
-            artist: artist,
-            album: "Unknown Album",
+            title: parsed.title,
+            artist: parsed.artist,
+            album: parsed.album,
             localPath: finalPath
         )
         context.insert(newTrack)
         try? context.save()
-        print("Track saved to Library layer: \(title) by \(artist)")
+        print("Track saved to Library layer: \(parsed.title) by \(parsed.artist)")
     }
 
     private func persistState() {

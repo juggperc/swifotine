@@ -31,6 +31,7 @@ struct AppShell: View {
     // Inject globally
     @StateObject private var downloadsStore = DownloadsStore()
     @StateObject private var searchStore = SearchStore()
+    @StateObject private var playlistCoverStore = PlaylistCoverStore()
 
     // Playback Engine is shared object
     @StateObject private var playbackEngine = PlaybackEngine.shared
@@ -57,6 +58,7 @@ struct AppShell: View {
                         MainContentArea(section: selection)
                             .environmentObject(searchStore)
                             .environmentObject(downloadsStore)
+                            .environmentObject(playlistCoverStore)
                             .environmentObject(playbackEngine)
                     } else {
                         Text("Select a section")
@@ -116,14 +118,6 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
         .navigationTitle("Home")
-    }
-}
-
-struct PlaylistsView: View {
-    var body: some View {
-        Text("Playlists")
-            .navigationTitle("Playlists")
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

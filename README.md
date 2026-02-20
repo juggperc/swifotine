@@ -14,6 +14,8 @@ Native macOS Soulseek client prototype built with SwiftUI, SwiftData, and a Pyth
 - Queue and monitor downloads from search results.
 - Persist download transfer state across app relaunches.
 - Organize completed files into your local library (SwiftData persistent store).
+- Library supports table and grid layouts with generated album-cover artwork.
+- Playlists support custom procedural covers influenced by user-provided text.
 - Native music playback with timeline scrubbing, artwork, and a mini player window.
 - Acknowledgements pop-out (Help menu) for bundled/open-source dependencies.
 - Short animated splash screen on launch for smoother startup handoff.
@@ -63,12 +65,18 @@ Outputs:
 - Download updates carry stable transfer IDs derived from source user + virtual path, improving state tracking.
 - Smart source failover: when downloading a selected file, the app can enqueue additional matching peers (same path/size) to improve start reliability when a single source stalls.
 - Transfer state is serialized to `~/Library/Application Support/Swifotine/downloads-state.json` and restored at launch.
+- Track metadata parsing now uses filename + folder heuristics for better artist/album/title detection.
 
 ## Notes on search
 
 - Each search is tokenized and bounded: the app automatically stops a search after inactivity, when the hard time limit is reached, or when ranked results hit the cap.
 - Results are ranked by query-text match and transfer quality signals (free slots, queue depth, peer speed, bitrate).
 - Search history snapshots are serialized to `~/Library/Application Support/Swifotine/search-history.json` for quick reuse.
+
+## Notes on library and playlists
+
+- Playlist cover profiles are serialized to `~/Library/Application Support/Swifotine/playlist-covers.json`.
+- You can switch Library between table and grid modes; grid cards render procedural album covers from track metadata.
 
 ## Useful shortcuts
 

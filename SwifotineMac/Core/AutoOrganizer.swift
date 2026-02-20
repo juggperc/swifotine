@@ -11,24 +11,15 @@ struct AutoOrganizer {
         guard fileManager.fileExists(atPath: downloadedPath) else { return nil }
 
         let url = URL(fileURLWithPath: downloadedPath)
-        let name = url.lastPathComponent
         let ext = url.pathExtension
+        let parsed = TrackMetadataParser.parse(localPath: downloadedPath)
 
-        // Very basic heuristic for Phase E: Parse filename "Artist - Title.ext"
-        var artist = "Unknown Artist"
-        var title = name
-
-        // Remove extension
-        let nameWithoutExt = name.replacingOccurrences(of: ".\(ext)", with: "")
-
-        if let dashRange = nameWithoutExt.range(of: " - ") {
-            artist = String(nameWithoutExt[..<dashRange.lowerBound]).trimmingCharacters(
-                in: .whitespaces)
-            title = String(nameWithoutExt[dashRange.upperBound...]).trimmingCharacters(
-                in: .whitespaces)
-        }
-
-        let album = "Unknown Album"
+        let artist = TrackMetadataParser.filesystemSafeComponent(
+            parsed.artist, fallback: "Unknown Artist")
+        let album = TrackMetadataParser.filesystemSafeComponent(
+            parsed.album, fallback: "Unknown Album")
+        let title = TrackMetadataParser.filesystemSafeComponent(
+            parsed.title, fallback: url.deletingPathExtension().lastPathComponent)
 
         // Create Library/Artist/Album structure
         let targetDir =
@@ -38,7 +29,8 @@ struct AutoOrganizer {
 
         do {
             try fileManager.createDirectory(at: targetDir, withIntermediateDirectories: true)
-            let finalDest = targetDir.appendingPathComponent("\(title).\(ext)")
+            let normalizedFilename = ext.isEmpty ? title : "\(title).\(ext)"
+            let finalDest = targetDir.appendingPathComponent(normalizedFilename)
 
             // if target exists, replace it or skip? for safety let's assume skip duplicate
             if !fileManager.fileExists(atPath: finalDest.path) {
