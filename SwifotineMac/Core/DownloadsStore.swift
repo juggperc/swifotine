@@ -15,6 +15,15 @@ public struct DownloadTransfer: Identifiable, Hashable {
 
 extension DownloadTransfer: Codable {}
 
+enum DownloadTransferState: String, CaseIterable, Identifiable {
+    case active = "Active"
+    case queued = "Queued"
+    case finished = "Finished"
+    case failed = "Failed"
+
+    var id: String { rawValue }
+}
+
 @MainActor
 class DownloadsStore: ObservableObject {
     @Published var activeTransfers: [DownloadTransfer] = []
@@ -155,8 +164,127 @@ class DownloadsStore: ObservableObject {
         persistState()
     }
 
+    func transferState(for transfer: DownloadTransfer) -> DownloadTransferState {
+        let normalizedStatus = transfer.status.lowercased()
+
+        if normalizedStatus.contains("failed") {
+            return .failed
+        }
+
+        if normalizedStatus.contains("finished")
+            || (transfer.totalSize > 0
+                && transfer.bytesTransferred >= transfer.totalSize
+                && transfer.speed == 0
+                && !normalizedStatus.contains("queued"))
+        {
+            return .finished
+        }
+
+        if normalizedStatus.contains("queued") || transfer.id.hasPrefix("queued:") {
+            return .queued
+        }
+
+        if transfer.speed > 0
+            || (transfer.totalSize > 0 && transfer.bytesTransferred > 0 && transfer.bytesTransferred < transfer.totalSize)
+            || normalizedStatus.contains("downloading")
+            || normalizedStatus.contains("transferring")
+            || normalizedStatus.contains("requesting")
+        {
+            return .active
+        }
+
+        return .queued
+    }
+
+    func retryTransfer(_ transfer: DownloadTransfer) async -> Bool {
+        do {
+            let response = try await BackendClient.shared.sendRequest(
+                method: "download.enqueue",
+                params: [
+                    "username": transfer.sourceUsername,
+                    "virtualPath": transfer.virtualPath,
+                ])
+            try validateRPCResponse(response, fallbackMessage: "Failed to retry download.")
+
+            if let index = activeTransfers.firstIndex(where: { $0.id == transfer.id }) {
+                let wasFailed = transferState(for: activeTransfers[index]) == .failed
+                activeTransfers[index].status = "Queued"
+                activeTransfers[index].speed = 0
+                activeTransfers[index].eta = 0
+                if wasFailed {
+                    activeTransfers[index].bytesTransferred = 0
+                }
+            } else {
+                let queuedID = queuedTransferID(
+                    username: transfer.sourceUsername,
+                    virtualPath: transfer.virtualPath
+                )
+                let queuedTransfer = DownloadTransfer(
+                    id: queuedID,
+                    virtualPath: transfer.virtualPath,
+                    sourceUsername: transfer.sourceUsername,
+                    status: "Queued",
+                    bytesTransferred: 0,
+                    totalSize: transfer.totalSize,
+                    speed: 0,
+                    eta: 0,
+                    localPath: transfer.localPath
+                )
+                activeTransfers.insert(queuedTransfer, at: 0)
+            }
+
+            persistState()
+            return true
+        } catch {
+            print("Retry enqueue failed: \(error)")
+            return false
+        }
+    }
+
+    func retryFailedTransfers() async -> Int {
+        let failedTransfers = activeTransfers.filter { transferState(for: $0) == .failed }
+        var successfulRetries = 0
+
+        for transfer in failedTransfers {
+            let didRetry = await retryTransfer(transfer)
+            if didRetry {
+                successfulRetries += 1
+            }
+        }
+
+        return successfulRetries
+    }
+
+    func dismissTransfer(id: String) {
+        activeTransfers.removeAll(where: { $0.id == id })
+        persistState()
+    }
+
+    func clearFinishedTransfers() {
+        clearTransfers(where: { transferState(for: $0) == .finished })
+    }
+
+    func clearFailedTransfers() {
+        clearTransfers(where: { transferState(for: $0) == .failed })
+    }
+
+    func clearInactiveTransfers() {
+        clearTransfers(where: {
+            let state = transferState(for: $0)
+            return state == .finished || state == .failed
+        })
+    }
+
     private func queuedTransferID(username: String, virtualPath: String) -> String {
         "queued:\(username):\(virtualPath)"
+    }
+
+    private func clearTransfers(where shouldRemove: (DownloadTransfer) -> Bool) {
+        let beforeCount = activeTransfers.count
+        activeTransfers.removeAll(where: shouldRemove)
+        if activeTransfers.count != beforeCount {
+            persistState()
+        }
     }
 
     private func handleCompletedDownload(_ localPath: String) {
@@ -224,5 +352,18 @@ class DownloadsStore: ObservableObject {
         } catch {
             print("Failed to restore downloads state: \(error)")
         }
+    }
+
+    private func validateRPCResponse(_ response: RPCResponse, fallbackMessage: String) throws {
+        if response.ok == true {
+            return
+        }
+
+        let message = response.error?.message ?? fallbackMessage
+        throw NSError(
+            domain: "DownloadsStore",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
     }
 }

@@ -85,6 +85,7 @@ struct PlaylistsView: View {
                 createPlaylist()
             }
             .buttonStyle(.borderedProminent)
+            .frame(minWidth: 130)
             .disabled(newPlaylistName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
@@ -119,6 +120,7 @@ struct PlaylistsView: View {
                         playlistTracksSection(playlist)
                         addTracksSection(playlist)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.trailing, 4)
                 }
                 .id(playlist.id)
@@ -157,36 +159,50 @@ struct PlaylistsView: View {
                         playPlaylist(playlist)
                     }
                     .buttonStyle(.borderedProminent)
+                    .frame(minWidth: 132)
 
                     Button("Queue Playlist") {
                         enqueuePlaylist(playlist)
                     }
                     .buttonStyle(.bordered)
+                    .frame(minWidth: 132)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 TextField("Cover influence", text: $detailCoverInfluence)
                     .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 420)
 
                 HStack(spacing: 8) {
                     Button("Apply Influence") {
                         coverStore.setInfluence(detailCoverInfluence, for: playlist.id)
                     }
                     .buttonStyle(.borderedProminent)
+                    .frame(minWidth: 132)
 
                     Button("Regenerate Cover") {
                         coverStore.regenerate(for: playlist.id)
                     }
                     .buttonStyle(.bordered)
+                    .frame(minWidth: 132)
 
                     Button("Delete Playlist", role: .destructive) {
                         deletePlaylist(playlist)
                     }
                     .buttonStyle(.bordered)
+                    .frame(minWidth: 132)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: 480, alignment: .leading)
 
             Spacer()
         }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.secondary.opacity(0.07))
+        )
     }
 
     private func playlistTracksSection(_ playlist: Playlist) -> some View {
@@ -203,55 +219,21 @@ struct PlaylistsView: View {
                     ForEach(entries) { entry in
                         if let track = entry.track {
                             HoverRowCard(cornerRadius: 10, baseOpacity: 0.08) {
-                                HStack(spacing: 10) {
-                                    TrackArtworkCoverView(
-                                        track: track,
-                                        seed: "\(track.artist)|\(track.album)",
-                                        title: track.album,
-                                        cornerRadius: 8,
-                                        symbolScale: 0.30
-                                    )
-                                    .frame(width: 40, height: 40)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(track.title)
-                                            .lineLimit(1)
-                                        Text("\(track.artist) - \(track.album)")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                    }
-
-                                    Spacer()
-
-                                    Button {
+                                PlaylistTrackRow(
+                                    track: track,
+                                    onPlayFromHere: {
                                         playPlaylist(from: track, in: playlist)
-                                    } label: {
-                                        Image(systemName: "play.fill")
-                                    }
-                                    .buttonStyle(.borderless)
-
-                                    Button {
+                                    },
+                                    onPlayNext: {
                                         playbackEngine.playNext(track: track)
-                                    } label: {
-                                        Image(systemName: "text.line.first.and.arrowtriangle.forward")
-                                    }
-                                    .buttonStyle(.borderless)
-
-                                    Button {
+                                    },
+                                    onQueue: {
                                         playbackEngine.enqueue(track: track)
-                                    } label: {
-                                        Image(systemName: "text.badge.plus")
-                                    }
-                                    .buttonStyle(.borderless)
-
-                                    Button(role: .destructive) {
+                                    },
+                                    onRemove: {
                                         removeEntry(entry, from: playlist)
-                                    } label: {
-                                        Image(systemName: "trash")
                                     }
-                                    .buttonStyle(.borderless)
-                                }
+                                )
                             }
                         }
                     }
@@ -276,20 +258,8 @@ struct PlaylistsView: View {
                 LazyVStack(spacing: 7) {
                     ForEach(Array(candidates), id: \.id) { track in
                         HoverRowCard(cornerRadius: 9, baseOpacity: 0.06, verticalPadding: 6) {
-                            HStack(spacing: 10) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(track.title)
-                                        .lineLimit(1)
-                                    Text("\(track.artist) - \(track.album)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                                Spacer()
-                                Button("Add") {
-                                    addTrack(track, to: playlist)
-                                }
-                                .buttonStyle(.bordered)
+                            PlaylistCandidateRow(track: track) {
+                                addTrack(track, to: playlist)
                             }
                         }
                     }
@@ -400,6 +370,97 @@ struct PlaylistsView: View {
             for: playlist.id,
             fallbackInfluence: sessionStore.username
         )
+    }
+}
+
+private struct PlaylistTrackRow: View {
+    let track: Track
+    let onPlayFromHere: () -> Void
+    let onPlayNext: () -> Void
+    let onQueue: () -> Void
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            TrackArtworkCoverView(
+                track: track,
+                seed: "\(track.artist)|\(track.album)",
+                title: track.album,
+                cornerRadius: 8,
+                symbolScale: 0.30
+            )
+            .frame(width: 40, height: 40)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(track.title)
+                    .lineLimit(1)
+                Text("\(track.artist) - \(track.album)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 4) {
+                Button {
+                    onPlayFromHere()
+                } label: {
+                    Image(systemName: "play.fill")
+                }
+                .buttonStyle(.borderless)
+                .frame(width: 24)
+
+                Button {
+                    onPlayNext()
+                } label: {
+                    Image(systemName: "text.line.first.and.arrowtriangle.forward")
+                }
+                .buttonStyle(.borderless)
+                .frame(width: 24)
+
+                Button {
+                    onQueue()
+                } label: {
+                    Image(systemName: "text.badge.plus")
+                }
+                .buttonStyle(.borderless)
+                .frame(width: 24)
+
+                Button(role: .destructive) {
+                    onRemove()
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .frame(width: 24)
+            }
+            .frame(width: 114, alignment: .trailing)
+        }
+    }
+}
+
+private struct PlaylistCandidateRow: View {
+    let track: Track
+    let onAdd: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(track.title)
+                    .lineLimit(1)
+                Text("\(track.artist) - \(track.album)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button("Add") {
+                onAdd()
+            }
+            .buttonStyle(.bordered)
+            .frame(width: 76, alignment: .trailing)
+        }
     }
 }
 
