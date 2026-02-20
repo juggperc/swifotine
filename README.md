@@ -16,6 +16,7 @@ Native macOS Soulseek client prototype built with SwiftUI, SwiftData, and a Pyth
 - Organize completed files into your local library (SwiftData persistent store).
 - Native music playback with timeline scrubbing, artwork, and a mini player window.
 - Acknowledgements pop-out (Help menu) for bundled/open-source dependencies.
+- Short animated splash screen on launch for smoother startup handoff.
 - Package into a standalone `.app` and `.dmg`.
 
 ## Repository layout

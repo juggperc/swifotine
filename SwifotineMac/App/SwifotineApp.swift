@@ -24,7 +24,7 @@ struct SwifotineApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppShell()
+            AppLaunchView()
                 .environmentObject(sessionStore)
                 .modelContainer(modelContainer)
                 .onAppear {
