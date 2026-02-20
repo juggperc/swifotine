@@ -1,138 +1,85 @@
 # Swifotine
 
-Native macOS Soulseek client prototype built with SwiftUI, SwiftData, and a Python helper that wraps Nicotine+ core services.
+Native macOS Soulseek client built with SwiftUI/SwiftData and a Python helper around Nicotine+.
 
-## What it does
+## Highlights
 
-- Login/connect to Soulseek through an embedded helper process.
-- Global search with:
-  - tabbed searches
-  - relevance-ranked results
-  - bounded runtime (idle finish + hard timeout + max-results cap)
-  - persistent search history with restorable cached results
-  - file metadata/details panel
-- Queue and monitor downloads from search results.
-- Persist download transfer state across app relaunches.
-- Organize completed files into your local library (SwiftData persistent store).
-- Library supports table and grid layouts with embedded artwork (and procedural fallback covers).
-- Playlists support custom procedural covers influenced by user-provided text.
-- Playback queue supports "Play Next" and "Add to Queue" from library context menus.
-- Native music playback with timeline scrubbing, artwork, and a mini player window.
-- Acknowledgements pop-out (Help menu) for bundled/open-source dependencies.
-- Short animated splash screen on launch for smoother startup handoff.
-- Package into a standalone `.app` and `.dmg`.
+- Search with tabs, ranking, and history
+- Download queue + transfer persistence
+- Library with list/grid layouts and artwork
+- Playlists + queue controls
+- Native playback, mini player, and keyboard shortcuts
 
-## Repository layout
+## Project layout
 
-- `SwifotineMac/` - SwiftUI macOS app.
-- `backend/slsk-helper/swifotine_helper.py` - JSON-RPC bridge to Nicotine+.
-- `vendor/nicotine-plus/` - vendored Nicotine+ engine.
-- `scripts/build_release_dmg.sh` - release app + DMG builder.
-- `scripts/generate_app_icon.sh` - icon generation script.
-- `assets/` - app icon sources (`AppIcon.icns`, base PNG, iconset).
+- `SwifotineMac/` macOS app
+- `backend/slsk-helper/swifotine_helper.py` helper bridge
+- `vendor/nicotine-plus/` vendored engine
+- `scripts/build_release_dmg.sh` release packager
 
 ## Requirements
 
 - macOS 14+
-- Xcode command line tools
+- Xcode Command Line Tools
 - Swift 5.9+
-- Python 3 (system Python is fine)
+- Python 3
 
-## Run from source
+## Run locally
 
 ```bash
 cd SwifotineMac
 swift run
 ```
 
-## Build app + DMG
-
-From repo root:
+## Build `.app` and `.dmg`
 
 ```bash
 ./scripts/build_release_dmg.sh 1.0
 ```
 
-The release script now enforces Gatekeeper-safe packaging by default:
-- universal binary (`arm64` + `x86_64`)
-- Developer ID signing
-- notarization + stapling
+Output:
 
-For public distribution:
+- `dist/Swifotine.app`
+- `Swifotine_v1.0.dmg`
+
+## Release builds (for other users)
+
+Use Developer ID signing + notarization:
 
 ```bash
 export SWIFOTINE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
 export SWIFOTINE_NOTARIZE=1
-export SWIFOTINE_NOTARY_PROFILE="AC_NOTARY_PROFILE" # or APPLE_ID/TEAM_ID/APP_PASSWORD vars
+export SWIFOTINE_NOTARY_PROFILE="AC_NOTARY_PROFILE"
 ./scripts/build_release_dmg.sh 1.0
 ```
 
-For local-only testing without trusted signing (not for public downloads):
+For local/internal testing only (not distributable):
 
 ```bash
 export SWIFOTINE_ALLOW_UNTRUSTED_RELEASE=1
 ./scripts/build_release_dmg.sh 1.0
 ```
 
-Outputs:
+## GitHub Actions
 
-- `dist/Swifotine.app`
-- `Swifotine_v1.0.dmg`
+- `/.github/workflows/swift.yml` CI build + test + artifact upload
+- `/.github/workflows/release.yml` signed/notarized release on `v*` tags
 
-## Notes on downloads
+Required repository secrets:
 
-- Search downloads are enqueued through the helper RPC method `download.enqueue`.
-- Search results now use the actual remote peer username from Nicotine+ responses.
-- The helper force-initializes share readiness for queue dispatch when needed, preventing transfers from remaining stuck in a local queued state.
-- Download updates carry stable transfer IDs derived from source user + virtual path, improving state tracking.
-- Smart source failover: when downloading a selected file, the app can enqueue additional matching peers (same path/size) to improve start reliability when a single source stalls.
-- Transfer state is serialized to `~/Library/Application Support/Swifotine/downloads-state.json` and restored at launch.
-- Track metadata parsing now prefers embedded tags, then falls back to filename + folder heuristics.
+- `MACOS_CERT_P12_BASE64`
+- `MACOS_CERT_PASSWORD`
+- `NOTARY_APPLE_ID`
+- `NOTARY_TEAM_ID`
+- `NOTARY_APP_PASSWORD`
 
-## Distribution notes (Gatekeeper)
+## Data locations
 
-- Release builds are now packaged as universal binaries (`arm64` + `x86_64`) by default.
-- If users see “The app could not be opened”, the DMG was not Developer ID signed/notarized.
-- Public releases must be Developer ID signed and notarized (see build section above).
+- Downloads state: `~/Library/Application Support/Swifotine/downloads-state.json`
+- Search history: `~/Library/Application Support/Swifotine/search-history.json`
+- Playlist cover profiles: `~/Library/Application Support/Swifotine/playlist-covers.json`
 
-## GitHub Actions automation
-
-- `.github/workflows/swift.yml`
-  - Runs on push/PR/manual dispatch.
-  - Builds the Swift package and publishes unsigned CI `.app`/`.dmg` artifacts.
-- `.github/workflows/release.yml`
-  - Runs on `v*` tags or manual dispatch with a version.
-  - Imports Developer ID cert, notarizes the DMG, and publishes a GitHub Release artifact.
-
-Required repository secrets for release workflow:
-
-- `MACOS_CERT_P12_BASE64` - Base64-encoded Developer ID Application `.p12`
-- `MACOS_CERT_PASSWORD` - Password for the `.p12`
-- `NOTARY_APPLE_ID` - Apple ID used for notarization
-- `NOTARY_TEAM_ID` - Apple Developer Team ID
-- `NOTARY_APP_PASSWORD` - App-specific password for the Apple ID
-
-## Notes on search
-
-- Each search is tokenized and bounded: the app automatically stops a search after inactivity, when the hard time limit is reached, or when ranked results hit the cap.
-- Results are ranked by query-text match and transfer quality signals (free slots, queue depth, peer speed, bitrate).
-- Search history snapshots are serialized to `~/Library/Application Support/Swifotine/search-history.json` for quick reuse.
-
-## Notes on library and playlists
-
-- Playlist cover profiles are serialized to `~/Library/Application Support/Swifotine/playlist-covers.json`.
-- You can switch Library between table and grid modes; grid cards render procedural album covers from track metadata.
-
-## Useful shortcuts
-
-- `⌘P`: Play/Pause
-- `⌘.`: Stop playback
-- `⌘[` / `⌘]`: Seek back/forward 10 seconds
-- `⌘⌥]`: Next in queue
-- `⌘⇧M`: Show mini player
-- `⌘⌥A`: Show Acknowledgements
-
-## Additional docs
+## Docs
 
 - `architecture.md`
 - `ipc.md`
