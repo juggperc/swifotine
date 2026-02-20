@@ -11,6 +11,7 @@ public struct RPCRequest: Codable {
 public struct RPCResponse: Codable {
     public let id: String?
     public let ok: Bool?
+    public let result: [String: String]?
     public let error: RPCError?
 }
 

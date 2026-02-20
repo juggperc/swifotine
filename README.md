@@ -7,7 +7,9 @@ Native macOS Soulseek client prototype built with SwiftUI, SwiftData, and a Pyth
 - Login/connect to Soulseek through an embedded helper process.
 - Global search with:
   - tabbed searches
-  - persistent search history
+  - relevance-ranked results
+  - bounded runtime (idle finish + hard timeout + max-results cap)
+  - persistent search history with restorable cached results
   - file metadata/details panel
 - Queue and monitor downloads from search results.
 - Persist download transfer state across app relaunches.
@@ -60,6 +62,12 @@ Outputs:
 - Download updates carry stable transfer IDs derived from source user + virtual path, improving state tracking.
 - Smart source failover: when downloading a selected file, the app can enqueue additional matching peers (same path/size) to improve start reliability when a single source stalls.
 - Transfer state is serialized to `~/Library/Application Support/Swifotine/downloads-state.json` and restored at launch.
+
+## Notes on search
+
+- Each search is tokenized and bounded: the app automatically stops a search after inactivity, when the hard time limit is reached, or when ranked results hit the cap.
+- Results are ranked by query-text match and transfer quality signals (free slots, queue depth, peer speed, bitrate).
+- Search history snapshots are serialized to `~/Library/Application Support/Swifotine/search-history.json` for quick reuse.
 
 ## Useful shortcuts
 

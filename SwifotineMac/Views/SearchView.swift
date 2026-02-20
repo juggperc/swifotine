@@ -8,6 +8,7 @@ private struct SearchTabState: Identifiable, Hashable {
     var selection: Set<SearchResultItem.ID>
     var isSearching: Bool
     var lastError: String?
+    var lastNotice: String?
 }
 
 struct SearchView: View {
@@ -24,7 +25,8 @@ struct SearchView: View {
             results: [],
             selection: [],
             isSearching: false,
-            lastError: nil
+            lastError: nil,
+            lastNotice: nil
         )
     ]
     @State private var activeTabID: UUID = SearchView.initialTabID
@@ -87,6 +89,13 @@ struct SearchView: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled((activeTab?.query ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
+                if activeTab?.isSearching == true {
+                    Button("Stop") {
+                        store.stopSearch(notice: "Search stopped.")
+                    }
+                    .buttonStyle(.bordered)
+                }
+
                 if selectedItem != nil {
                     Button("Download Selected") {
                         if let selectedItem {
@@ -100,9 +109,9 @@ struct SearchView: View {
                     if store.searchHistory.isEmpty {
                         Text("No search history")
                     } else {
-                        ForEach(store.searchHistory, id: \.self) { historyItem in
-                            Button(historyItem) {
-                                applyHistoryItem(historyItem)
+                        ForEach(store.searchHistory) { entry in
+                            Button(historyMenuLabel(entry)) {
+                                applyHistoryEntry(entry)
                             }
                         }
                         Divider()
@@ -128,6 +137,13 @@ struct SearchView: View {
                 Text(error)
                     .font(.caption)
                     .foregroundColor(.red)
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let notice = activeTab?.lastNotice {
+                Text(notice)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal)
                     .padding(.bottom, 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -220,6 +236,12 @@ struct SearchView: View {
                 tab.lastError = newError
             }
         }
+        .onChange(of: store.lastSearchNotice) { _, newNotice in
+            guard let targetTabID = runningSearchTabID else { return }
+            updateTab(targetTabID) { tab in
+                tab.lastNotice = newNotice
+            }
+        }
         .onChange(of: store.isSearching) { _, isSearching in
             guard let targetTabID = runningSearchTabID else { return }
             updateTab(targetTabID) { tab in
@@ -290,7 +312,8 @@ struct SearchView: View {
             results: [],
             selection: [],
             isSearching: false,
-            lastError: nil
+            lastError: nil,
+            lastNotice: nil
         )
         tabs.append(newTab)
         activeTabID = newTab.id
@@ -300,7 +323,7 @@ struct SearchView: View {
         guard tabs.count > 1 else { return }
 
         if runningSearchTabID == tabID {
-            store.stopSearch()
+            store.stopSearch(notice: nil)
             runningSearchTabID = nil
         }
 
@@ -324,6 +347,7 @@ struct SearchView: View {
             updatedTab.selection.removeAll()
             updatedTab.isSearching = true
             updatedTab.lastError = nil
+            updatedTab.lastNotice = nil
         }
 
         runningSearchTabID = tab.id
@@ -333,11 +357,21 @@ struct SearchView: View {
         }
     }
 
-    private func applyHistoryItem(_ historyItem: String) {
-        updateTab(activeTabID) { tab in
-            tab.query = historyItem
+    private func applyHistoryEntry(_ entry: SearchHistoryEntry) {
+        if runningSearchTabID == activeTabID {
+            store.stopSearch(notice: nil)
+            runningSearchTabID = nil
         }
-        runSearch()
+
+        updateTab(activeTabID) { tab in
+            tab.title = makeTabTitle(query: entry.query)
+            tab.query = entry.query
+            tab.results = entry.cachedResults
+            tab.selection.removeAll()
+            tab.isSearching = false
+            tab.lastError = nil
+            tab.lastNotice = "Loaded \(entry.resultCount) cached results from \(relativeDateString(entry.searchedAt))."
+        }
     }
 
     private func enqueueDownload(_ item: SearchResultItem) {
@@ -374,5 +408,15 @@ struct SearchView: View {
         let minutes = seconds / 60
         let secs = seconds % 60
         return String(format: "%d:%02d", minutes, secs)
+    }
+
+    private func historyMenuLabel(_ entry: SearchHistoryEntry) -> String {
+        "\(entry.query) (\(entry.resultCount)) - \(relativeDateString(entry.searchedAt))"
+    }
+
+    private func relativeDateString(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }

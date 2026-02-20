@@ -22,6 +22,7 @@ class SwifotineHelper:
         self.session_config = {}
         self.is_running = True
         self._forced_shares_ready = False
+        self._active_search_tokens = set()
 
         # Initialize core components. We exclude UI and CLI.
         # "search" and "downloads" components must be enabled
@@ -103,6 +104,16 @@ class SwifotineHelper:
         digest = hashlib.sha1(f"{username}|{virtual_path}".encode("utf-8")).hexdigest()[:16]
         return f"{username}:{digest}"
 
+    def _resolve_local_path(self, transfer):
+        try:
+            if getattr(core, "downloads", None):
+                path = core.downloads.get_current_download_file_path(transfer)
+                if path:
+                    return str(path)
+        except Exception:
+            pass
+        return ""
+
     def _ensure_download_queue_ready(self):
         if not getattr(core, "shares", None):
             return
@@ -122,22 +133,32 @@ class SwifotineHelper:
 
     def on_update_download(self, transfer, *args):
         status = getattr(transfer, "status", "unknown")
+        bytes_transferred = getattr(transfer, "current_byte_offset", None)
+        if bytes_transferred is None:
+            bytes_transferred = getattr(transfer, "transferred_bytes_total", 0)
+        bytes_transferred = int(bytes_transferred or 0)
+
+        total_size = int(getattr(transfer, "size", 0) or 0)
+        speed = int(getattr(transfer, "speed", 0) or 0)
+        eta = int(getattr(transfer, "time_left", 0) or 0)
+        local_path = self._resolve_local_path(transfer)
+
         self.emit_event("download.updated", {
             "transfer_id": self._transfer_id(transfer),
             "source_username": getattr(transfer, "user", "unknown"),
             "virtual_path": getattr(transfer, "virtual_path", ""),
             "status": str(status),
-            "bytes_transferred": getattr(transfer, "transferred", 0),
-            "total": getattr(transfer, "size", 0),
-            "speed": getattr(transfer, "speed", 0),
-            "eta": getattr(transfer, "eta", 0),
-            "local_path": getattr(transfer, "file_path", "")
+            "bytes_transferred": bytes_transferred,
+            "total": total_size,
+            "speed": speed,
+            "eta": eta,
+            "local_path": local_path
         })
         # If it finished or reached equivalent completion, broadcast a distinct finished event
         status_str = str(status).lower()
         if "finished" in status_str or "complete" in status_str:
             self.emit_event("download.finished", {
-                "local_file_path": getattr(transfer, "file_path", ""),
+                "local_file_path": local_path,
                 "source_username": getattr(transfer, "user", "unknown"),
                 "virtual_path": getattr(transfer, "virtual_path", "")
             })
@@ -176,7 +197,7 @@ class SwifotineHelper:
         if error is not None:
             res = {"id": request_id, "ok": False, "error": error}
         else:
-            res = {"id": request_id, "ok": True, "result": result or {}}
+            res = {"id": request_id, "ok": True, "result": self._normalize_payload(result or {})}
         sys.stdout.write(json.dumps(res) + "\n")
         sys.stdout.flush()
 
@@ -223,9 +244,39 @@ class SwifotineHelper:
                 self.respond(req_id)
             elif method == "search.start":
                 query = params.get("query", "")
+                token = None
                 if getattr(core, "search", None) and query:
                     core.search.do_search(query, mode="global")
-                self.respond(req_id)
+                    token = str(getattr(core.search, "token", ""))
+                    if token:
+                        self._active_search_tokens.add(token)
+
+                result = {"token": token or ""}
+                self.respond(req_id, result=result)
+            elif method == "search.stop":
+                search_token = params.get("token", "")
+                removed = 0
+
+                if getattr(core, "search", None):
+                    if search_token:
+                        try:
+                            token_int = int(search_token)
+                        except ValueError:
+                            token_int = None
+
+                        if token_int is not None:
+                            core.search.remove_search(token_int)
+                            if search_token in self._active_search_tokens:
+                                self._active_search_tokens.remove(search_token)
+                            removed = 1
+                    else:
+                        tokens = list(self._active_search_tokens)
+                        for token in tokens:
+                            core.search.remove_search(int(token))
+                        removed = len(tokens)
+                        self._active_search_tokens.clear()
+
+                self.respond(req_id, result={"removed": removed})
             elif method == "download.enqueue":
                 username = params.get("username", "")
                 vpath = params.get("virtualPath", "").replace("/", "\\")
