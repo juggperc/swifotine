@@ -95,6 +95,23 @@ Outputs:
 - If users see “The app could not be opened”, the DMG was not Developer ID signed/notarized.
 - Public releases must be Developer ID signed and notarized (see build section above).
 
+## GitHub Actions automation
+
+- `.github/workflows/swift.yml`
+  - Runs on push/PR/manual dispatch.
+  - Builds the Swift package and publishes unsigned CI `.app`/`.dmg` artifacts.
+- `.github/workflows/release.yml`
+  - Runs on `v*` tags or manual dispatch with a version.
+  - Imports Developer ID cert, notarizes the DMG, and publishes a GitHub Release artifact.
+
+Required repository secrets for release workflow:
+
+- `MACOS_CERT_P12_BASE64` - Base64-encoded Developer ID Application `.p12`
+- `MACOS_CERT_PASSWORD` - Password for the `.p12`
+- `NOTARY_APPLE_ID` - Apple ID used for notarization
+- `NOTARY_TEAM_ID` - Apple Developer Team ID
+- `NOTARY_APP_PASSWORD` - App-specific password for the Apple ID
+
 ## Notes on search
 
 - Each search is tokenized and bounded: the app automatically stops a search after inactivity, when the hard time limit is reached, or when ranked results hit the cap.

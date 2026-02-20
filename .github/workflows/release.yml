@@ -1,0 +1,120 @@
+name: macOS Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="v${VERSION}"
+          fi
+
+          if [[ -z "$VERSION" ]]; then
+            echo "Version cannot be empty." >&2
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Import Developer ID certificate
+        id: signing
+        shell: bash
+        env:
+          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          if [[ -z "$MACOS_CERT_P12_BASE64" || -z "$MACOS_CERT_PASSWORD" ]]; then
+            echo "Missing signing secrets: MACOS_CERT_P12_BASE64 or MACOS_CERT_PASSWORD" >&2
+            exit 1
+          fi
+
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 20)"
+          KEYCHAIN_PATH="$RUNNER_TEMP/swifotine-signing.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/developer-id.p12"
+
+          echo "$MACOS_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -nE 's/.*"([^"]+)".*/\1/p' | grep 'Developer ID Application:' | head -n 1)"
+          if [[ -z "$IDENTITY" ]]; then
+            echo "Developer ID Application identity not found in imported certificate." >&2
+            exit 1
+          fi
+
+          echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
+
+      - name: Configure notarytool credentials
+        shell: bash
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
+        run: |
+          if [[ -z "$NOTARY_APPLE_ID" || -z "$NOTARY_TEAM_ID" || -z "$NOTARY_APP_PASSWORD" ]]; then
+            echo "Missing notarization secrets: NOTARY_APPLE_ID, NOTARY_TEAM_ID, NOTARY_APP_PASSWORD" >&2
+            exit 1
+          fi
+
+          xcrun notarytool store-credentials AC_NOTARY_PROFILE \
+            --apple-id "$NOTARY_APPLE_ID" \
+            --team-id "$NOTARY_TEAM_ID" \
+            --password "$NOTARY_APP_PASSWORD"
+
+      - name: Build signed and notarized release
+        env:
+          SWIFOTINE_SIGN_IDENTITY: ${{ steps.signing.outputs.identity }}
+          SWIFOTINE_NOTARIZE: "1"
+          SWIFOTINE_NOTARY_PROFILE: "AC_NOTARY_PROFILE"
+        run: |
+          ./scripts/build_release_dmg.sh "${{ steps.version.outputs.version }}"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: swifotine-release-${{ steps.version.outputs.version }}
+          if-no-files-found: error
+          path: |
+            dist/Swifotine.app
+            Swifotine_v${{ steps.version.outputs.version }}.dmg
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Swifotine v${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            Swifotine_v${{ steps.version.outputs.version }}.dmg

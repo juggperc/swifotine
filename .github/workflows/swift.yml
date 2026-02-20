@@ -1,22 +1,42 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
-
-name: Swift
+name: macOS CI
 
 on:
   push:
-    branches: [ "codex/swifotine-bootstrap" ]
+    branches:
+      - codex/swifotine-bootstrap
+      - main
   pull_request:
-    branches: [ "codex/swifotine-bootstrap" ]
+  workflow_dispatch:
 
 jobs:
   build:
-
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Swift package (release)
+        run: |
+          cd SwifotineMac
+          swift build -c release --arch arm64 --arch x86_64
+
+      - name: Run tests
+        run: |
+          cd SwifotineMac
+          swift test -c debug
+
+      - name: Build app and DMG (CI artifact)
+        env:
+          SWIFOTINE_ALLOW_UNTRUSTED_RELEASE: "1"
+        run: |
+          ./scripts/build_release_dmg.sh "ci-${GITHUB_RUN_NUMBER}"
+
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: swifotine-ci-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            dist/Swifotine.app
+            Swifotine_vci-${{ github.run_number }}.dmg
