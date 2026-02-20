@@ -1,0 +1,91 @@
+{
+  "": {
+    "dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/Swifotine.d",
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/Swifotine.o",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/master.swiftdeps"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/App/SwifotineApp.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SwifotineApp.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SwifotineApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SwifotineApp.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SwifotineApp.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/AutoOrganizer.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/AutoOrganizer.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/AutoOrganizer~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/AutoOrganizer.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/AutoOrganizer.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/BackendClient+Stream.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/BackendClient+Stream.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/BackendClient+Stream~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/BackendClient+Stream.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/BackendClient+Stream.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/BackendClient.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/BackendClient.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/BackendClient~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/BackendClient.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/BackendClient.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/DataModels.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DataModels.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DataModels~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DataModels.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DataModels.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/DownloadsStore.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DownloadsStore.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DownloadsStore~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DownloadsStore.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DownloadsStore.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/PlaybackEngine.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/PlaybackEngine.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/PlaybackEngine~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/PlaybackEngine.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/PlaybackEngine.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/SearchStore.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SearchStore.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SearchStore~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SearchStore.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SearchStore.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/Types.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/Types.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/Types~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/Types.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/Types.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/AppShell.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/AppShell.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/AppShell~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/AppShell.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/AppShell.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/DownloadsView.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DownloadsView.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DownloadsView~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DownloadsView.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/DownloadsView.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/LibraryViews.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/LibraryViews.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/LibraryViews~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/LibraryViews.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/LibraryViews.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/LoginView.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/LoginView.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/LoginView~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/LoginView.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/LoginView.dia"
+  },
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/SearchView.swift": {
+    "object": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SearchView.swift.o",
+    "swiftmodule": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SearchView~partial.swiftmodule",
+    "swift-dependencies": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SearchView.swiftdeps",
+    "diagnostics": "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/arm64-apple-macosx/release/Swifotine.build/SearchView.dia"
+  }
+}

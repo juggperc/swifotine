@@ -1,0 +1,47 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "PackageStructure": ["<PackageStructure>"]
+  "Swifotine-arm64-apple-macosx26.0-debug.module": ["<Swifotine-arm64-apple-macosx26.0-debug.module>"]
+  "main": ["<Swifotine-arm64-apple-macosx26.0-debug.module>"]
+  "test": ["<Swifotine-arm64-apple-macosx26.0-debug.module>"]
+default: "main"
+nodes:
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+commands:
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Swifotine.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/App/SwifotineApp.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/AutoOrganizer.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/BackendClient+Stream.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/BackendClient.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/DataModels.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/DownloadsStore.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/PlaybackEngine.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/SearchStore.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/Types.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/AppShell.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/DownloadsView.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/LibraryViews.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/LoginView.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/SearchView.swift"]
+    outputs: ["/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Swifotine.build/sources"]
+    description: "Write auxiliary file /Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Swifotine.build/sources"
+
+  "/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+
+  "<Swifotine-arm64-apple-macosx26.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Modules/Swifotine.swiftmodule"]
+    outputs: ["<Swifotine-arm64-apple-macosx26.0-debug.module>"]
+
+  "C.Swifotine-arm64-apple-macosx26.0-debug.module":
+    tool: shell
+    inputs: ["/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/App/SwifotineApp.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/AutoOrganizer.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/BackendClient+Stream.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/BackendClient.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/DataModels.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/DownloadsStore.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/PlaybackEngine.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/SearchStore.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Core/Types.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/AppShell.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/DownloadsView.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/LibraryViews.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/LoginView.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Views/SearchView.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Swifotine.build/sources"]
+    outputs: ["/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Modules/Swifotine.swiftmodule"]
+    description: "Compiling Swift Module 'Swifotine' (14 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","Swifotine","-emit-dependencies","-emit-module","-emit-module-path","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Modules/Swifotine.swiftmodule","-output-file-map","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Swifotine.build/output-file-map.json","-incremental","@/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Swifotine.build/sources","-I","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j8","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/.build/index-build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-swift-version","5","-Xfrontend","-experimental-lazy-typecheck","-Xfrontend","-experimental-skip-all-function-bodies","-Xfrontend","-experimental-allow-module-with-compiler-errors","-Xfrontend","-empty-abi-descriptor","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","swifotinemac"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Package.swift","/Users/alexjamesmcintyre/Projects/swifotine-gemini/swifotine/SwifotineMac/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+
