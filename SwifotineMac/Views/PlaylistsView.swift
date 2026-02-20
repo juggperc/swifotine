@@ -37,14 +37,9 @@ struct PlaylistsView: View {
 
             Divider()
 
-            HSplitView {
-                playlistList
-                    .frame(minWidth: 250, maxWidth: 320)
-
-                playlistDetail
-                    .frame(minWidth: 540)
-            }
+            playlistWorkspace
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(14)
         .navigationTitle("Playlists")
         .onAppear {
@@ -69,6 +64,40 @@ struct PlaylistsView: View {
         }
         .onChange(of: selectedPlaylistID) { _, _ in
             syncDetailInfluence()
+        }
+    }
+
+    private var playlistWorkspace: some View {
+        GeometryReader { proxy in
+            let isCompact = proxy.size.width < 900
+
+            Group {
+                if isCompact {
+                    VStack(spacing: 10) {
+                        playlistList
+                            .frame(height: 208)
+
+                        Divider()
+
+                        playlistDetail
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
+                } else {
+                    HStack(spacing: 0) {
+                        playlistList
+                            .frame(width: max(220, min(320, proxy.size.width * 0.30)))
+                            .padding(.trailing, 12)
+
+                        Divider()
+                            .padding(.vertical, 2)
+
+                        playlistDetail
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .padding(.leading, 16)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 
@@ -104,6 +133,8 @@ struct PlaylistsView: View {
                     isSelected: playlist.id == selectedPlaylistID
                 )
                 .tag(playlist.id)
+                .listRowInsets(EdgeInsets(top: 4, leading: 6, bottom: 4, trailing: 6))
+                .listRowSeparator(.hidden)
             }
         }
         .listStyle(.sidebar)
@@ -121,7 +152,8 @@ struct PlaylistsView: View {
                         addTracksSection(playlist)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.trailing, 4)
+                    .padding(.trailing, 8)
+                    .padding(.bottom, 6)
                 }
                 .id(playlist.id)
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
