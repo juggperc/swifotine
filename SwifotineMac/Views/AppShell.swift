@@ -217,99 +217,19 @@ struct PlaybackBottomBar: View {
 
                 HStack(spacing: 12) {
                     HStack(spacing: 12) {
-                        ArtworkThumbnail(image: playbackEngine.currentArtwork, size: 44)
+                        nowPlayingSummary
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                        if let track = playbackEngine.currentTrack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
-                                    if playbackEngine.state == .playing {
-                                        NowPlayingPulseDot()
-                                    }
+                        MiniBarVisualizerView(
+                            bands: playbackEngine.visualizerBins,
+                            isPlaying: playbackEngine.state == .playing
+                        )
+                        .frame(minWidth: 220, idealWidth: 340, maxWidth: 420)
+                        .accessibilityLabel("Music Visualizer")
 
-                                    Text(track.title)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                }
-                                Text(track.artist)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                if let queuedTrack = playbackEngine.upNext.first {
-                                    Text("Up next: \(queuedTrack.title)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                            }
-                            .frame(maxWidth: 280, alignment: .leading)
-                        } else {
-                            Text("Not Playing")
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: 280, alignment: .leading)
-                        }
+                        playbackControls
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-
-                    Spacer(minLength: 12)
-
-                    InlineWaveformVisualizerView(
-                        bands: playbackEngine.visualizerBins,
-                        isPlaying: playbackEngine.state == .playing
-                    )
-                    .frame(minWidth: 220, idealWidth: 380, maxWidth: 520)
-                    .layoutPriority(1)
-                    .accessibilityLabel("Music Visualizer")
-
-                    Spacer(minLength: 12)
-
-                    HStack(spacing: 12) {
-                        Button {
-                            playbackEngine.seek(by: -10)
-                        } label: {
-                            Image(systemName: "gobackward.10")
-                        }
-                        .help("Back 10 Seconds")
-
-                        Button {
-                            playbackEngine.togglePlayPause()
-                        } label: {
-                            Image(systemName: playbackEngine.state == .playing ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 28))
-                        }
-                        .help("Play or Pause")
-
-                        Button {
-                            playbackEngine.seek(by: 10)
-                        } label: {
-                            Image(systemName: "goforward.10")
-                        }
-                        .help("Forward 10 Seconds")
-
-                        Button {
-                            playbackEngine.skipToNextInQueue()
-                        } label: {
-                            Image(systemName: "forward.end.fill")
-                        }
-                        .disabled(playbackEngine.upNext.isEmpty)
-                        .help("Next in Queue")
-
-                        Button {
-                            playbackEngine.stop()
-                        } label: {
-                            Image(systemName: "stop.fill")
-                        }
-                        .help("Stop Playback")
-
-                        Divider()
-                            .frame(height: 20)
-
-                        Button {
-                            playbackEngine.toggleMiniPlayer()
-                        } label: {
-                            Image(systemName: "pip")
-                        }
-                        .help("Open Mini Player")
-                    }
-                    .buttonStyle(.borderless)
                 }
             }
             .padding(.horizontal, 14)
@@ -329,6 +249,93 @@ struct PlaybackBottomBar: View {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private var nowPlayingSummary: some View {
+        HStack(spacing: 12) {
+            ArtworkThumbnail(image: playbackEngine.currentArtwork, size: 44)
+
+            if let track = playbackEngine.currentTrack {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        if playbackEngine.state == .playing {
+                            NowPlayingPulseDot()
+                        }
+
+                        Text(track.title)
+                            .font(.headline)
+                            .lineLimit(1)
+                    }
+                    Text(track.artist)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    if let queuedTrack = playbackEngine.upNext.first {
+                        Text("Up next: \(queuedTrack.title)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: 300, alignment: .leading)
+            } else {
+                Text("Not Playing")
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: 300, alignment: .leading)
+            }
+        }
+    }
+
+    private var playbackControls: some View {
+        HStack(spacing: 12) {
+            Button {
+                playbackEngine.seek(by: -10)
+            } label: {
+                Image(systemName: "gobackward.10")
+            }
+            .help("Back 10 Seconds")
+
+            Button {
+                playbackEngine.togglePlayPause()
+            } label: {
+                Image(systemName: playbackEngine.state == .playing ? "pause.circle.fill" : "play.circle.fill")
+                    .font(.system(size: 28))
+            }
+            .help("Play or Pause")
+
+            Button {
+                playbackEngine.seek(by: 10)
+            } label: {
+                Image(systemName: "goforward.10")
+            }
+            .help("Forward 10 Seconds")
+
+            Button {
+                playbackEngine.skipToNextInQueue()
+            } label: {
+                Image(systemName: "forward.end.fill")
+            }
+            .disabled(playbackEngine.upNext.isEmpty)
+            .help("Next in Queue")
+
+            Button {
+                playbackEngine.stop()
+            } label: {
+                Image(systemName: "stop.fill")
+            }
+            .help("Stop Playback")
+
+            Divider()
+                .frame(height: 20)
+
+            Button {
+                playbackEngine.toggleMiniPlayer()
+            } label: {
+                Image(systemName: "pip")
+            }
+            .help("Open Mini Player")
+        }
+        .buttonStyle(.borderless)
     }
 }
 
@@ -350,9 +357,10 @@ private struct NowPlayingPulseDot: View {
     }
 }
 
-private struct InlineWaveformVisualizerView: View {
+private struct MiniBarVisualizerView: View {
     let bands: [Float]
     let isPlaying: Bool
+    private let barCount = 24
 
     private var normalizedBands: [Float] {
         if bands.isEmpty {
@@ -361,141 +369,84 @@ private struct InlineWaveformVisualizerView: View {
         return bands
     }
 
+    private var barValues: [CGFloat] {
+        let source = normalizedBands
+        let stride = max(source.count / barCount, 1)
+        let meanEnergy = source.reduce(0, +) / Float(max(source.count, 1))
+        let gain = min(max(0.64 / max(meanEnergy, 0.14), 0.95), 1.5)
+
+        return (0..<barCount).map { index in
+            let start = min(index * stride, source.count - 1)
+            let end = min(start + stride, source.count)
+            guard start < end else { return 0 }
+
+            let slice = source[start..<end]
+            let average = slice.reduce(0, +) / Float(slice.count)
+            let peak = slice.max() ?? 0
+            let blended = (average * 0.58) + (peak * 0.42)
+            var value = CGFloat(min(max(powf(blended * gain, 0.75), 0), 1))
+            if !isPlaying {
+                value *= 0.25
+            } else {
+                value = max(value, 0.04)
+            }
+            return value
+        }
+    }
+
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
+        TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { _ in
             Canvas(rendersAsynchronously: true) { context, size in
-                guard size.width > 40, size.height > 12 else { return }
+                guard size.width > 120, size.height > 14 else { return }
 
-                let frameBands = normalizedBands
-                let bandCount = frameBands.count
-                let midY = size.height / 2
-                let width = size.width
-                let maxAmplitude = size.height * 0.42
-                let phase = CGFloat(timeline.date.timeIntervalSinceReferenceDate * 2.4)
+                let values = barValues
+                let spacing: CGFloat = 4
+                let totalSpacing = spacing * CGFloat(max(values.count - 1, 0))
+                let barWidth = max(3, (size.width - totalSpacing) / CGFloat(max(values.count, 1)))
+                let minHeight: CGFloat = 6
+                let maxHeight = size.height - 2
 
-                let aggregateEnergy = frameBands.reduce(0, +) / Float(max(frameBands.count, 1))
-                let activeMultiplier: CGFloat = isPlaying ? 1 : 0.35
-                let energyBoost = CGFloat(min(max(aggregateEnergy, 0), 1)) * 0.18
+                for (index, value) in values.enumerated() {
+                    let x = CGFloat(index) * (barWidth + spacing)
+                    let barHeight = min(maxHeight, max(minHeight, minHeight + (value * (maxHeight - minHeight))))
+                    let y = size.height - barHeight
+                    let radius = min(barWidth / 2, 3.6)
+                    let rect = CGRect(x: x, y: y, width: barWidth, height: barHeight)
+                    let path = Path(roundedRect: rect, cornerRadius: radius)
 
-                var upperPoints: [CGPoint] = []
-                var lowerPoints: [CGPoint] = []
-                upperPoints.reserveCapacity(bandCount)
-                lowerPoints.reserveCapacity(bandCount)
-
-                for index in 0..<bandCount {
-                    let xPosition = CGFloat(index) / CGFloat(max(bandCount - 1, 1))
-                    let x = xPosition * width
-                    let bandValue = CGFloat(min(max(frameBands[index], 0), 1))
-                    let perceptual = pow(bandValue, 0.75)
-                    let taper = sin(xPosition * .pi)
-                    let shimmer = isPlaying ? (sin(phase + CGFloat(index) * 0.42) * 0.7) : 0
-                    let amplitude =
-                        max(1.2, ((perceptual + energyBoost) * maxAmplitude * taper * activeMultiplier) + shimmer)
-
-                    upperPoints.append(CGPoint(x: x, y: midY - amplitude))
-                    lowerPoints.append(CGPoint(x: x, y: midY + amplitude))
-                }
-
-                var fillPath = Path()
-                if let first = upperPoints.first {
-                    fillPath.move(to: first)
-                    for point in upperPoints.dropFirst() {
-                        fillPath.addLine(to: point)
-                    }
-                    for point in lowerPoints.reversed() {
-                        fillPath.addLine(to: point)
-                    }
-                    fillPath.closeSubpath()
-                }
-
-                let topStroke = smoothPath(points: upperPoints)
-                let bottomStroke = smoothPath(points: lowerPoints)
-
-                let fillGradient = Gradient(colors: [
-                    Color.accentColor.opacity(0.18),
-                    Color.cyan.opacity(0.06),
-                    Color.accentColor.opacity(0.18),
-                ])
-                context.fill(
-                    fillPath,
-                    with: .linearGradient(
-                        fillGradient,
-                        startPoint: CGPoint(x: 0, y: 0),
-                        endPoint: CGPoint(x: width, y: size.height)
+                    let hueShift = Double(index) / Double(max(values.count, 1))
+                    let top = Color.cyan.opacity(0.92 - (hueShift * 0.22))
+                    let bottom = Color.accentColor.opacity(0.84 - (hueShift * 0.18))
+                    context.fill(
+                        path,
+                        with: .linearGradient(
+                            Gradient(colors: [top, bottom]),
+                            startPoint: CGPoint(x: x, y: y),
+                            endPoint: CGPoint(x: x, y: size.height)
+                        )
                     )
-                )
+                }
 
+                var baselinePath = Path()
+                baselinePath.move(to: CGPoint(x: 0, y: size.height - 0.5))
+                baselinePath.addLine(to: CGPoint(x: size.width, y: size.height - 0.5))
                 context.stroke(
-                    topStroke,
-                    with: .linearGradient(
-                        Gradient(colors: [Color.cyan.opacity(0.85), Color.accentColor.opacity(0.95)]),
-                        startPoint: CGPoint(x: 0, y: midY),
-                        endPoint: CGPoint(x: width, y: midY)
-                    ),
-                    lineWidth: 2.0
-                )
-                context.stroke(
-                    bottomStroke,
-                    with: .linearGradient(
-                        Gradient(colors: [Color.accentColor.opacity(0.95), Color.cyan.opacity(0.85)]),
-                        startPoint: CGPoint(x: 0, y: midY),
-                        endPoint: CGPoint(x: width, y: midY)
-                    ),
-                    lineWidth: 1.65
-                )
-
-                var baseline = Path()
-                baseline.move(to: CGPoint(x: 0, y: midY))
-                baseline.addLine(to: CGPoint(x: width, y: midY))
-                context.stroke(
-                    baseline,
+                    baselinePath,
                     with: .color(Color.white.opacity(0.08)),
                     style: StrokeStyle(lineWidth: 0.8, lineCap: .round)
                 )
             }
         }
-        .frame(height: 54)
-        .padding(.horizontal, 6)
+        .frame(height: 42)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
                 .fill(.thinMaterial)
         )
         .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         }
-    }
-
-    private func smoothPath(points: [CGPoint]) -> Path {
-        guard let first = points.first else { return Path() }
-        guard points.count > 1 else {
-            var singlePath = Path()
-            singlePath.move(to: first)
-            return singlePath
-        }
-
-        var path = Path()
-        path.move(to: first)
-
-        for index in 1..<points.count {
-            let previous = points[index - 1]
-            let current = points[index]
-            let midpoint = CGPoint(
-                x: (previous.x + current.x) / 2,
-                y: (previous.y + current.y) / 2
-            )
-
-            if index == 1 {
-                path.addLine(to: midpoint)
-            } else {
-                path.addQuadCurve(to: midpoint, control: previous)
-            }
-
-            if index == points.count - 1 {
-                path.addQuadCurve(to: current, control: midpoint)
-            }
-        }
-
-        return path
     }
 }

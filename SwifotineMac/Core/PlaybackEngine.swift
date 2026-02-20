@@ -227,9 +227,12 @@ class PlaybackEngine: ObservableObject {
         let targetBins: [Float]
         switch state {
         case .playing:
-            targetBins = visualizerTimeline.bands(at: seconds)
+            let rawBins = visualizerTimeline.bands(at: seconds)
+            let meanEnergy = rawBins.reduce(0, +) / Float(max(rawBins.count, 1))
+            let adaptiveGain = min(max(0.72 / max(meanEnergy, 0.12), 0.92), 1.65)
+            targetBins = rawBins.map { min(max(powf($0 * adaptiveGain, 0.84), 0), 1) }
         case .paused:
-            targetBins = visualizerBins.map { $0 * 0.985 }
+            targetBins = visualizerBins.map { $0 * 0.972 }
         case .stopped, .buffering:
             targetBins = Array(repeating: 0, count: visualizerBins.count)
         }
@@ -243,7 +246,7 @@ class PlaybackEngine: ObservableObject {
         for index in 0..<targetBins.count {
             let current = visualizerBins[index]
             let target = targetBins[index]
-            let interpolation: Float = target > current ? 0.46 : 0.24
+            let interpolation: Float = target > current ? 0.74 : 0.32
             smoothed[index] = current + ((target - current) * interpolation)
         }
         visualizerBins = smoothed
