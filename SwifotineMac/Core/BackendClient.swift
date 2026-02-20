@@ -18,15 +18,15 @@ actor BackendClient {
     func launchHelper() async {
         guard helperProcess == nil else { return }
 
-        // Due to SwiftPM, the python script might not be in Resources, so we fall back or find it.
-        var helperPath = Bundle.main.path(forResource: "swifotine_helper", ofType: "py")
-        if helperPath == nil {
-            // For dev environments
-            let pwd = FileManager.default.currentDirectoryPath
-            let altPath = "\(pwd)/../backend/slsk-helper/swifotine_helper.py"
-            if FileManager.default.fileExists(atPath: altPath) {
-                helperPath = altPath
-            }
+        // Resolve relative to this source file, since 'swift run' executes from arbitrary CWDs
+        var helperPath: String? = nil
+        let sourceFilePath = #filePath
+        let selfCoreURL = URL(fileURLWithPath: sourceFilePath).deletingLastPathComponent()
+        let helperURL = selfCoreURL.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("backend/slsk-helper/swifotine_helper.py")
+
+        if FileManager.default.fileExists(atPath: helperURL.path) {
+            helperPath = helperURL.path
         }
 
         guard let validHelperPath = helperPath else {

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -63,6 +64,8 @@ struct AppShell: View {
                     .environmentObject(playbackEngine)
             }
             .onAppear {
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
                 downloadsStore.setup(modelContext: modelContext)
             }
         } else {

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -9,6 +10,7 @@ struct SwifotineApp: App {
     let modelContainer: ModelContainer
 
     init() {
+
         do {
             modelContainer = try ModelContainer(for: Track.self, Playlist.self, PlaylistEntry.self)
         } catch {
