@@ -16,11 +16,15 @@ class PlaybackEngine: ObservableObject {
     @Published var currentArtwork: NSImage?
     @Published var duration: Double = 0.0
     @Published var upNext: [Track] = []
+    @Published var visualizerBins: [Float] = Array(
+        repeating: 0, count: AudioVisualizerTimeline.defaultBandCount)
 
     private var player: AVQueuePlayer?
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
     private var metadataRequestID = UUID()
+    private var visualizerRequestID = UUID()
+    private var visualizerTimeline: AudioVisualizerTimeline = .silent()
 
     @Published var currentTime: Double = 0.0
 
@@ -35,10 +39,12 @@ class PlaybackEngine: ObservableObject {
         guard let p = player else { return }
 
         timeObserver = p.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
+            forInterval: CMTime(seconds: 1.0 / 30.0, preferredTimescale: 600), queue: .main
         ) { [weak self] time in
             Task { @MainActor in
-                self?.currentTime = time.seconds
+                guard let self else { return }
+                self.currentTime = time.seconds
+                self.updateVisualizer(at: time.seconds)
             }
         }
 
@@ -103,6 +109,7 @@ class PlaybackEngine: ObservableObject {
         currentTime = 0
         duration = 0
         currentArtwork = nil
+        resetVisualizer()
 
         let item = AVPlayerItem(url: url)
         player?.replaceCurrentItem(with: item)
@@ -112,7 +119,9 @@ class PlaybackEngine: ObservableObject {
         self.state = .playing
         let requestID = UUID()
         metadataRequestID = requestID
+        visualizerRequestID = requestID
         loadMetadata(for: url, requestID: requestID)
+        loadVisualizerTimeline(for: url, requestID: requestID)
     }
 
     func pause() {
@@ -161,6 +170,7 @@ class PlaybackEngine: ObservableObject {
         self.state = .stopped
         self.currentTime = 0
         self.duration = 0
+        resetVisualizer()
     }
 
     func showMiniPlayer() {
@@ -182,6 +192,7 @@ class PlaybackEngine: ObservableObject {
 
         state = .stopped
         currentTime = duration
+        resetVisualizer()
     }
 
     private func loadMetadata(for url: URL, requestID: UUID) {
@@ -197,5 +208,45 @@ class PlaybackEngine: ObservableObject {
             duration = rawDuration.isFinite ? rawDuration : 0
             currentArtwork = resolvedArtwork
         }
+    }
+
+    private func loadVisualizerTimeline(for url: URL, requestID: UUID) {
+        Task { [weak self] in
+            guard let self else { return }
+            let timeline = await AudioVisualizerAnalyzer.shared.timeline(for: url)
+            guard requestID == self.visualizerRequestID else { return }
+            self.visualizerTimeline = timeline
+        }
+    }
+
+    private func updateVisualizer(at seconds: Double) {
+        let targetBins: [Float]
+        switch state {
+        case .playing:
+            targetBins = visualizerTimeline.bands(at: seconds)
+        case .paused:
+            targetBins = visualizerBins.map { $0 * 0.985 }
+        case .stopped, .buffering:
+            targetBins = Array(repeating: 0, count: visualizerBins.count)
+        }
+
+        if visualizerBins.count != targetBins.count {
+            visualizerBins = targetBins
+            return
+        }
+
+        var smoothed = visualizerBins
+        for index in 0..<targetBins.count {
+            let current = visualizerBins[index]
+            let target = targetBins[index]
+            let interpolation: Float = target > current ? 0.46 : 0.24
+            smoothed[index] = current + ((target - current) * interpolation)
+        }
+        visualizerBins = smoothed
+    }
+
+    private func resetVisualizer() {
+        visualizerTimeline = .silent()
+        visualizerBins = Array(repeating: 0, count: AudioVisualizerTimeline.defaultBandCount)
     }
 }
