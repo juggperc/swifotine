@@ -1,0 +1,3 @@
+[submodule "vendor/nicotine-plus"]
+	path = vendor/nicotine-plus
+	url = https://github.com/nicotine-plus/nicotine-plus.git
