@@ -53,12 +53,24 @@ From repo root:
 ./scripts/build_release_dmg.sh 1.0
 ```
 
-For public distribution (recommended):
+The release script now enforces Gatekeeper-safe packaging by default:
+- universal binary (`arm64` + `x86_64`)
+- Developer ID signing
+- notarization + stapling
+
+For public distribution:
 
 ```bash
 export SWIFOTINE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
 export SWIFOTINE_NOTARIZE=1
 export SWIFOTINE_NOTARY_PROFILE="AC_NOTARY_PROFILE" # or APPLE_ID/TEAM_ID/APP_PASSWORD vars
+./scripts/build_release_dmg.sh 1.0
+```
+
+For local-only testing without trusted signing (not for public downloads):
+
+```bash
+export SWIFOTINE_ALLOW_UNTRUSTED_RELEASE=1
 ./scripts/build_release_dmg.sh 1.0
 ```
 
@@ -80,7 +92,8 @@ Outputs:
 ## Distribution notes (Gatekeeper)
 
 - Release builds are now packaged as universal binaries (`arm64` + `x86_64`) by default.
-- If users see “The app could not be opened”, distribute a Developer ID signed + notarized DMG (see build section above).
+- If users see “The app could not be opened”, the DMG was not Developer ID signed/notarized.
+- Public releases must be Developer ID signed and notarized (see build section above).
 
 ## Notes on search
 

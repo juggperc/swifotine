@@ -16,9 +16,10 @@ DMG_STAGE_DIR="$DIST_DIR/dmg-root"
 DMG_PATH="$ROOT_DIR/${APP_NAME}_v${VERSION}.dmg"
 ICON_PATH="$ROOT_DIR/assets/AppIcon.icns"
 
-SIGN_IDENTITY="${SWIFOTINE_SIGN_IDENTITY:--}"
 ALLOW_SINGLE_ARCH="${SWIFOTINE_ALLOW_SINGLE_ARCH:-0}"
-NOTARIZE="${SWIFOTINE_NOTARIZE:-0}"
+ALLOW_UNTRUSTED_RELEASE="${SWIFOTINE_ALLOW_UNTRUSTED_RELEASE:-0}"
+SIGN_IDENTITY="${SWIFOTINE_SIGN_IDENTITY:-}"
+NOTARIZE="${SWIFOTINE_NOTARIZE:-}"
 NOTARY_PROFILE="${SWIFOTINE_NOTARY_PROFILE:-}"
 NOTARY_APPLE_ID="${SWIFOTINE_NOTARY_APPLE_ID:-}"
 NOTARY_TEAM_ID="${SWIFOTINE_NOTARY_TEAM_ID:-}"
@@ -27,6 +28,50 @@ NOTARY_APP_PASSWORD="${SWIFOTINE_NOTARY_APP_PASSWORD:-}"
 if [[ ! -f "$ICON_PATH" ]]; then
   "$ROOT_DIR/scripts/generate_app_icon.sh"
 fi
+
+find_developer_id_identity() {
+  security find-identity -v -p codesigning \
+    | sed -nE 's/.*"(Developer ID Application:.*)".*/\1/p' \
+    | head -n 1
+}
+
+resolve_signing_mode() {
+  if [[ -z "$SIGN_IDENTITY" ]]; then
+    local detected_identity
+    detected_identity="$(find_developer_id_identity || true)"
+    if [[ -n "$detected_identity" ]]; then
+      SIGN_IDENTITY="$detected_identity"
+    else
+      SIGN_IDENTITY="-"
+    fi
+  fi
+
+  if [[ "$SIGN_IDENTITY" == "-" ]]; then
+    if [[ "$ALLOW_UNTRUSTED_RELEASE" != "1" ]]; then
+      cat >&2 <<EOF
+No Developer ID Application certificate was provided/found.
+Gatekeeper will block this app on other Macs.
+
+Fix:
+  1) Install a Developer ID Application cert in Keychain.
+  2) Run with SWIFOTINE_SIGN_IDENTITY set (or let auto-detect pick it up).
+  3) Notarize the DMG.
+
+For local-only testing (unsafe for distribution), set:
+  SWIFOTINE_ALLOW_UNTRUSTED_RELEASE=1
+EOF
+      exit 1
+    fi
+
+    if [[ -z "$NOTARIZE" ]]; then
+      NOTARIZE=0
+    fi
+  else
+    if [[ -z "$NOTARIZE" ]]; then
+      NOTARIZE=1
+    fi
+  fi
+}
 
 build_arch() {
   local arch="$1"
@@ -60,7 +105,7 @@ notarize_dmg_if_requested() {
   fi
 
   if [[ "$SIGN_IDENTITY" == "-" ]]; then
-    echo "Notarization requires Developer ID signing. Set SWIFOTINE_SIGN_IDENTITY." >&2
+    echo "Notarization requires Developer ID signing." >&2
     exit 1
   fi
 
@@ -74,9 +119,9 @@ notarize_dmg_if_requested() {
       --wait
   else
     cat >&2 <<EOF
-Notarization requested but credentials were not provided.
+Notarization is enabled but credentials are missing.
 Set one of:
-  1) SWIFOTINE_NOTARY_PROFILE (preferred keychain profile)
+  1) SWIFOTINE_NOTARY_PROFILE
   2) SWIFOTINE_NOTARY_APPLE_ID + SWIFOTINE_NOTARY_TEAM_ID + SWIFOTINE_NOTARY_APP_PASSWORD
 EOF
     exit 1
@@ -84,6 +129,17 @@ EOF
 
   xcrun stapler staple "$DMG_PATH"
 }
+
+assess_gatekeeper_if_trusted_release() {
+  if [[ "$ALLOW_UNTRUSTED_RELEASE" == "1" ]]; then
+    return
+  fi
+
+  spctl --assess --type execute --verbose=4 "$APP_BUNDLE"
+  spctl --assess --type open --verbose=4 "$DMG_PATH"
+}
+
+resolve_signing_mode
 
 mkdir -p "$DIST_DIR"
 
@@ -170,15 +226,16 @@ if [[ "$SIGN_IDENTITY" != "-" ]]; then
 fi
 
 notarize_dmg_if_requested
+assess_gatekeeper_if_trusted_release
 
 ARCHS=$(lipo -archs "$APP_BUNDLE/Contents/MacOS/$APP_NAME" 2>/dev/null || echo "unknown")
 echo "Built app bundle: $APP_BUNDLE"
 echo "Built DMG: $DMG_PATH"
 echo "Binary architectures: $ARCHS"
 
-if [[ "$SIGN_IDENTITY" == "-" ]]; then
+if [[ "$ALLOW_UNTRUSTED_RELEASE" == "1" ]]; then
   cat <<EOF
-Note: build uses ad-hoc signing. For public distribution, set SWIFOTINE_SIGN_IDENTITY to your
-Developer ID Application certificate and optionally SWIFOTINE_NOTARIZE=1 to notarize the DMG.
+Warning: untrusted release mode enabled. This DMG is for local/internal use only.
+Public users may still see "The app could not be opened" due to Gatekeeper.
 EOF
 fi
