@@ -40,10 +40,9 @@ class SwifotineHelper:
         events.connect("server-login", self.on_server_login)
         events.connect("invalid-password", self.on_invalid_auth)
         events.connect("invalid-username", self.on_invalid_auth)
-        events.connect("disconnect", self.on_disconnect)
-        events.connect("search-result", self.on_search_result)
+        events.connect("server-disconnect", self.on_disconnect)
+        events.connect("file-search-response", self.on_search_result)
         events.connect("update-download", self.on_update_download)
-        events.connect("download-finished", self.on_download_finished)
         events.connect("download-file-error", self.on_download_error)
         events.connect("quit", self.on_quit)
 
@@ -69,34 +68,44 @@ class SwifotineHelper:
             "username": self.session_config.get("username", "")
         })
         
-    def on_search_result(self, search_result):
-        # We need to pick out the interesting fields
-        self.emit_event("search.result", {
-            "token": getattr(search_result, "token", "unknown"),
-            "peer_username": getattr(search_result, "user", "unknown"),
-            "file_path": getattr(search_result, "filename", "unknown"),
-            "size": getattr(search_result, "size", 0),
-            "bitrate": getattr(search_result, "bitrate", 0),
-            "length": getattr(search_result, "length", 0)
-        })
+    def on_search_result(self, msg, *args):
+        if getattr(msg, "list", None) is None:
+            return
+        username = getattr(msg, "search_username", getattr(msg, "username", "unknown"))
+        token = getattr(msg, "token", "unknown")
+        for res in msg.list:
+            if len(res) >= 3:
+                filepath = res[1]
+                size = res[2]
+                attrs = res[4] if len(res) > 4 else {}
+                self.emit_event("search.result", {
+                    "token": token,
+                    "peer_username": username,
+                    "file_path": filepath,
+                    "size": size,
+                    "bitrate": attrs.get("bitrate", 0) if isinstance(attrs, dict) else 0,
+                    "length": attrs.get("length", 0) if isinstance(attrs, dict) else 0
+                })
 
     def on_update_download(self, transfer, *args):
+        status = getattr(transfer, "status", "unknown")
         self.emit_event("download.updated", {
             "transfer_id": getattr(transfer, "id", "unknown"),
-            "status": getattr(transfer, "status", "unknown"),
+            "status": str(status),
             "bytes_transferred": getattr(transfer, "transferred", 0),
             "total": getattr(transfer, "size", 0),
             "speed": getattr(transfer, "speed", 0),
             "eta": getattr(transfer, "eta", 0),
             "local_path": getattr(transfer, "file_path", "")
         })
-
-    def on_download_finished(self, transfer, *args):
-        self.emit_event("download.finished", {
-            "local_file_path": getattr(transfer, "file_path", ""),
-            "source_username": getattr(transfer, "user", "unknown"),
-            "virtual_path": getattr(transfer, "virtual_path", "")
-        })
+        # If it finished or reached equivalent completion, broadcast a distinct finished event
+        status_str = str(status).lower()
+        if "finished" in status_str or "complete" in status_str:
+            self.emit_event("download.finished", {
+                "local_file_path": getattr(transfer, "file_path", ""),
+                "source_username": getattr(transfer, "user", "unknown"),
+                "virtual_path": getattr(transfer, "virtual_path", "")
+            })
         
     def on_download_error(self, transfer, reason, *args):
         self.emit_event("download.failed", {
@@ -162,9 +171,8 @@ class SwifotineHelper:
                 self.respond(req_id)
             elif method == "search.start":
                 query = params.get("query", "")
-                if core.search and query:
-                    # mode 1 typically represents global
-                    core.search.do_search(query, mode=1)
+                if getattr(core, "search", None) and query:
+                    core.search.do_search(query, mode="global")
                 self.respond(req_id)
             elif method == "download.enqueue":
                 username = params.get("username", "")

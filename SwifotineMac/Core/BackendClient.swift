@@ -23,7 +23,7 @@ actor BackendClient {
         if helperPath == nil {
             // For dev environments
             let pwd = FileManager.default.currentDirectoryPath
-            let altPath = "\(pwd)/backend/slsk-helper/swifotine_helper.py"
+            let altPath = "\(pwd)/../backend/slsk-helper/swifotine_helper.py"
             if FileManager.default.fileExists(atPath: altPath) {
                 helperPath = altPath
             }
