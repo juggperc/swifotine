@@ -31,7 +31,31 @@ struct TrackArtworkCoverView: View {
                 .stroke(Color.white.opacity(0.26), lineWidth: 1)
         }
         .task(id: track.localPath) {
-            artwork = await EmbeddedArtworkLoader.load(localPath: track.localPath)
+            artwork = await EmbeddedArtworkLoader.load(
+                localPath: track.localPath,
+                artist: track.artist,
+                album: track.album
+            )
+        }
+        .onReceive(NotificationCenter.default.publisher(for: artworkDidUpdateNotification)) { notification in
+            let albumKey = notification.userInfo?[artworkAlbumKeyUserInfoKey] as? String
+            let folderKey = notification.userInfo?[artworkFolderKeyUserInfoKey] as? String
+
+            let trackAlbumKey = EmbeddedArtworkLoader.albumCacheKey(
+                artist: track.artist,
+                album: track.album
+            )
+            let trackFolderKey = EmbeddedArtworkLoader.folderCacheKey(for: track.localPath)
+
+            guard albumKey == trackAlbumKey || folderKey == trackFolderKey else { return }
+
+            Task {
+                artwork = await EmbeddedArtworkLoader.load(
+                    localPath: track.localPath,
+                    artist: track.artist,
+                    album: track.album
+                )
+            }
         }
     }
 }

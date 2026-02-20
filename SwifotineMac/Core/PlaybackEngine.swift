@@ -120,7 +120,7 @@ class PlaybackEngine: ObservableObject {
         let requestID = UUID()
         metadataRequestID = requestID
         visualizerRequestID = requestID
-        loadMetadata(for: url, requestID: requestID)
+        loadMetadata(for: track, url: url, requestID: requestID)
         loadVisualizerTimeline(for: url, requestID: requestID)
     }
 
@@ -195,14 +195,18 @@ class PlaybackEngine: ObservableObject {
         resetVisualizer()
     }
 
-    private func loadMetadata(for url: URL, requestID: UUID) {
+    private func loadMetadata(for track: Track, url: URL, requestID: UUID) {
         Task { [weak self] in
             guard let self else { return }
 
             let asset = AVURLAsset(url: url)
             let loadedDuration = (try? await asset.load(.duration)) ?? .zero
             let rawDuration = CMTimeGetSeconds(loadedDuration)
-            let resolvedArtwork = await EmbeddedArtworkLoader.load(localPath: url.path)
+            let resolvedArtwork = await EmbeddedArtworkLoader.load(
+                localPath: url.path,
+                artist: track.artist,
+                album: track.album
+            )
 
             guard requestID == metadataRequestID else { return }
             duration = rawDuration.isFinite ? rawDuration : 0
